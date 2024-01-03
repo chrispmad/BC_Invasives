@@ -4,3 +4,5 @@
 .RData
 .Ruserdata
 app/www/*
+publishing_results/*
+app/rsconnect/*

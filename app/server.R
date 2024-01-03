@@ -6,6 +6,18 @@ function(input, output, session) {
     setwd(paste0(getwd(),"/www"))
   }
 
+  # Define function to print out prioritization model console outpupt.
+  print_p_model_console_feedback = function(){
+    withCallingHandlers({
+      shinyjs::html("p_model_feedback", "")
+      p_model$print()
+    },
+    message = function(m) {
+      shinyjs::html(id = "p_model_feedback", html = m$message, add = TRUE)
+    })
+  }
+
+
   bc = sf::read_sf('bc_shapefile.gpkg')
 
   observeEvent(input$update_bcinvadeR, {
@@ -76,8 +88,8 @@ function(input, output, session) {
     }
   )
 
-  # # # All Species in 1+ Waterbodies # # #
-  all_sp_in_wbs = reactiveVal()
+  # # # All Species in 1 Waterbody # # #
+  all_sp_in_wbs = reactiveVal(data.frame(results = 'No search run yet.'))
 
   observeEvent(input$search_for_all_sp_in_wb, {
     req(!is.null(input$all_sp_in_wbs_name) | (!is.null(input$all_sp_in_wb_lat) & !is.null(input$all_sp_in_wb_lng)))
@@ -112,7 +124,7 @@ function(input, output, session) {
 
   output$all_sp_in_wb_results = DT::renderDT({
     DT::datatable(
-    all_sp_in_wbs()
+      all_sp_in_wbs()
     )
   })
 
@@ -160,105 +172,249 @@ function(input, output, session) {
   waterbody_graph = reactiveVal()
 
   observeEvent(input$run_wb_connectivity_search, {
-    if(input$downstream_wb_only){
+    cat('starting wb connectivity search')
+    # if(input$downstream_wb_only){
+    #   results = tryCatch(
+    #     bcinvadeR::find_downstream_waterbodies(
+    #       input$wb_for_downst,
+    #       c(as.numeric(input$wb_for_downst_lng),
+    #         as.numeric(input$wb_for_downst_lat)),
+    #       the_session = session
+    #     ),
+    #     error = function(e) cat("Error connecting to BC Data Catalogue!")
+    #   )
+    #   if(results == "Error connecting to BC Data Catalogue!"){stop("Sorry, Downstream analysis failed!")}
+    # } else {
       results = tryCatch(
-        bcinvadeR::find_downstream_waterbodies(
-        input$wb_for_downst,
-        c(as.numeric(input$wb_for_downst_lng),
-          as.numeric(input$wb_for_downst_lat))
-      ),
-      error = function(e) cat("Error connecting to BC Data Catalogue!")
+        bcinvadeR::get_connected_waterbodies(
+          input$wb_for_downst,
+          c(as.numeric(input$wb_for_downst_lng),
+            as.numeric(input$wb_for_downst_lat)),
+          in_shiny = T,
+          the_session = session
+        ),
+        error = function(e) ("No waterbodies connected to target waterbody")
       )
-      if(results == "Error connecting to BC Data Catalogue!"){stop("Sorry, Downstream analysis failed!")}
-    } else {
-      results = bcinvadeR::get_connected_waterbodies(
-        input$wb_for_downst,
-        c(as.numeric(input$wb_for_downst_lng),
-          as.numeric(input$wb_for_downst_lat))
-      )
-    }
+    # }
     waterbody_graph(results)
   })
 
   output$waterbody_graph_as_image = renderPlotly({
     req(!is.null(waterbody_graph()))
-    wbs = waterbody_graph() |>
-      sf::st_transform(crs = 4326)
+    if('No waterbodies connected to target waterbody' %in% waterbody_graph()){
+      plotly::ggplotly(
+        ggplot2::ggplot() +
+          ggplot2::geom_text(aes(x = 1, y = 1),
+                             label = 'No waterbodies connected to target waterbody')
+      )
+    } else {
+      wbs = waterbody_graph() |>
+        sf::st_transform(crs = 4326)
 
-    p = ggplot2::ggplot() +
-      ggplot2::geom_sf(data = wbs,
-                       fill = 'darkblue',
-                       aes(tooltip = name)) +
-      ggplot2::geom_sf_label(
-        data = wbs,
-        aes(label = name)
-      ) +
-      ggthemes::theme_map()
+      p = ggplot2::ggplot() +
+        ggplot2::geom_sf(data = wbs,
+                         fill = 'darkblue',
+                         aes(tooltip = name)) +
+        ggplot2::geom_sf_label(
+          data = wbs,
+          aes(label = name)
+        ) +
+        ggthemes::theme_map()
 
-    plotly::ggplotly(p)
+      plotly::ggplotly(p)
+    }
   })
 
   output$waterbody_graph_as_table = renderTable({
     req(!is.null(waterbody_graph()))
-    # Find number of named lakes in resultin graph.
-    waterbody_graph() |>
-      sf::st_drop_geometry() |>
-      dplyr::mutate(is_lake = stringr::str_detect(name, 'Lake')) |>
-      dplyr::count(is_lake) |>
-      dplyr::mutate(is_lake = ifelse(is_lake, 'Named Lakes','Other Waterbodies')) |>
-      dplyr::mutate(is_lake = tidyr::replace_na(is_lake, 'Other Waterbodies')) |>
-      dplyr::group_by(is_lake) |>
-      dplyr::summarise(n = sum(n)) |>
-      tidyr::pivot_wider(names_from = is_lake, values_from = n)
+    if('No waterbodies connected to target waterbody' %in% waterbody_graph()){
+      data.frame(results = waterbody_graph())
+    } else {
+      # Find number of named lakes in resultin graph.
+      waterbody_graph() |>
+        sf::st_drop_geometry() |>
+        dplyr::mutate(is_lake = stringr::str_detect(name, 'Lake')) |>
+        dplyr::count(is_lake) |>
+        dplyr::mutate(is_lake = ifelse(is_lake, 'Named Lakes','Other Waterbodies')) |>
+        dplyr::mutate(is_lake = tidyr::replace_na(is_lake, 'Other Waterbodies')) |>
+        dplyr::group_by(is_lake) |>
+        dplyr::summarise(n = sum(n)) |>
+        tidyr::pivot_wider(names_from = is_lake, values_from = n)
+    }
   })
 
   output$waterbody_graph_named_lake_list = renderText({
     req(!is.null(waterbody_graph()))
-    lake_names = waterbody_graph() |>
-      sf::st_drop_geometry() |>
-      dplyr::filter(stringr::str_detect(name, 'Lake')) |>
-      dplyr::summarise(lake_names = paste0(name, collapse = ', ')) |>
-      dplyr::pull(lake_names)
-    paste0("Lake Names include: ",lake_names,".")
+    if('No waterbodies connected to target waterbody' %in% waterbody_graph()){
+      ''
+    } else {
+      lake_names = waterbody_graph() |>
+        sf::st_drop_geometry() |>
+        dplyr::filter(stringr::str_detect(name, 'Lake')) |>
+        dplyr::summarise(lake_names = paste0(name, collapse = ', ')) |>
+        dplyr::pull(lake_names)
+      paste0("Lake Names include: ",lake_names,".")
+    }
   })
 
   # # # Prioritization model # # #
 
   occ_dat_for_p_model = spec_search_Server('p_model_layer')
 
-  observe({
-    print(occ_dat_for_p_model())
-  })
+  # observe({
+  #   print(occ_dat_for_p_model())
+  # })
 
-  output$occ_dat_submit_button = renderUI({
-    if(is.null(occ_dat_for_p_model())){
-        actionButton('unhooked_button',label = 'Add to Model',
-                     style = 'background: grey;')
+  output$occ_data_results_text = renderText({
+    if(sf::st_drop_geometry(occ_dat_for_p_model()[1,1]) == 'No search run yet.'){
+      'No records to add yet.'
     } else {
-      actionButton('add_occ_data_to_p_model', 'Add to Model')
+      paste0(nrow(occ_dat_for_p_model()), ' records to add')
     }
   })
+
+  shinyjs::removeClass('add_occ_data_to_p_model', c('btn','btn-default','unhooked-btn'))
+  shinyjs::addClass('rainbow-btn', 'rainbow-btn')
 
   p_model = pmodel$new()
 
   # This isn't working... try here for solution:
   # https://stackoverflow.com/questions/30474538/possible-to-show-console-messages-written-with-message-in-a-shiny-ui
   observeEvent(input$add_occ_data_to_p_model, {
+    # Make sure user has searched successfully for a species before clicking button.
+    req(!sf::st_drop_geometry(occ_dat_for_p_model()[1,1]) == 'No search run yet.')
 
     p_model$add(role = 'occurrence', occ_dat_for_p_model())
 
-    withCallingHandlers({
-      shinyjs::html("p_model_feedback", "")
-      p_model$print()
-    },
-    message = function(m) {
-      shinyjs::html(id = "p_model_feedback", html = m$message, add = TRUE)
-    })
+    print_p_model_console_feedback()
+    # withCallingHandlers({
+    #   shinyjs::html("p_model_feedback", "")
+    #   p_model$print()
+    # },
+    # message = function(m) {
+    #   shinyjs::html(id = "p_model_feedback", html = m$message, add = TRUE)
+    # })
 
-    bslib::accordion_panel_close(id = 'occ_dat_accordion')
+    bslib::accordion_panel_close(id = 'p_model_accordion', values = 'occ_dat_accordion')
+    bslib::accordion_panel_open(id = 'p_model_accordion', values = 'area_of_int_accordion')
   })
 
+  geog_unit_upload_ui = renderUI({
+    req(input$geog_units_presets == 'custom_file')
+    fileInput('custom_geog_units',
+              label = 'Upload File (.gpkg, .zip)',
+              accept = c('gpkg','.zip'))
+  })
+
+  geog_units_choice = reactive({
+    # Preset geographic units selection logic.
+    if(input$geog_units_presets == 'nr_regs'){
+      output = bcmaps::nr_regions()
+    }
+    if(input$geog_units_presets == 'ecosecs'){
+      output = bcmaps::ecosections()
+    }
+    # Custom geographic units file upload.
+    if(input$geog_units_presets == 'custom_file'){
+      req(!is.null(input$custom_geog_units))
+      output = map2(
+        input$risk_layers_input$name,
+        input$risk_layers_input$datapath, ~ {
+          if(stringr::str_detect(.x,'.zip$')){
+            dat_unzip = unzip(.y)
+            dat = sf::read_sf(dat_unzip[stringr::str_detect(dat_unzip,'.shp')])
+          } else {
+            dat = sf::read_sf(.y)
+          }
+          # Confirm same projection system as geographic units of interest.
+          dat |> sf::st_transform(crs = sf::st_crs(occ_dat_for_p_model()))
+        })
+
+      # name elements in list.
+      names(output) = input$risk_layers_input$name
+    }
+  output |> sf::st_transform(crs = sf::st_crs(occ_dat_for_p_model()))
+  })
+
+  observeEvent(input$add_geog_units_to_p_model, {
+    p_model$add(role = 'geog_units', geog_units_choice())
+
+    print_p_model_console_feedback()
+  })
+
+  risk_layers = reactive({
+    output = map2(input$risk_layers_input$name,
+         input$risk_layers_input$datapath, ~ {
+           if(stringr::str_detect(.x,'.zip$')){
+             dat_unzip = unzip(.y)
+             dat = sf::read_sf(dat_unzip[stringr::str_detect(dat_unzip,'.shp')])
+           } else {
+             dat = sf::read_sf(.y)
+           }
+           # Confirm same projection system as geographic units of interest.
+           dat |> sf::st_transform(crs = sf::st_crs(occ_dat_for_p_model()))
+         })
+
+    # name elements in list.
+    names(output) = input$risk_layers_input$name
+    output
+  })
+
+  output$risk_layer_weights_ui <- renderUI({
+    req(length(risk_layers()) != 0)
+
+    n <- length(risk_layers())
+    name_titles = stringr::str_to_title(stringr::str_replace_all(names(risk_layers()),"_"," "))
+
+    numericInputs <- lapply(1:n, function(i) {
+      numericInput(paste0("risk_layer_weight_",i),
+                   label = paste0(name_titles[i]," Weight"),
+                   min = 0, max = 5,
+                   value = 1)
+    })
+    do.call(tagList, numericInputs)
+  })
+
+  risk_layer_weight_inputs = reactive({
+    req(length(risk_layers()) != 0)
+    # Get number of risk layers uploaded.
+    n <- length(risk_layers())
+    # Concatenate the risk layer weight inputs.
+    as.numeric(paste0(lapply(1:n, function(i) {
+      input[[paste0("risk_layer_weight_", i)]]
+    })))
+  })
+
+observeEvent(input$add_risk_layers_to_p_model, {
+  req(!is.null(risk_layers()))
+  p_model$add(role = 'risk', risk_layers())
+  p_model$add(role = 'weights', risk_layer_weight_inputs())
+
+  print_p_model_console_feedback()
+
+  })
+
+  p_model_output = reactiveVal()
+
+  observeEvent(input$run_p_model, {
+    p_model_output(p_model$run())
+  })
+
+  p_model_output_DT = DT::renderDT({
+    p_model_output()
+  })
+
+  p_model_feedback = reactiveVal()
+
+  observeEvent(
+    c(input$add_occ_data_to_p_model,
+      input$add_geog_units_to_p_model,
+      input$add_risk_layers_to_p_model), {
+        p_model_feedback(p_model$print())
+      })
+
   output$p_model_feedback = shiny::renderText({
-    p_model$print()
+    # p_model$print()
+    p_model_feedback()
   })
 }
