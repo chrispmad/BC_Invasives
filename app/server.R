@@ -103,16 +103,19 @@ function(input, output, session) {
         wb_poly = get_waterbody_polygon(focus_wb_name = input$all_sp_in_wbs_name,
                                         focus_wb_coordinates = c(input$all_sp_in_wb_lng,input$all_sp_in_wb_lat))
 
-        all_species_results = find_all_species_in_waterbody(
-          wb_poly,
-          in_shiny = T,
-          sources = c("SPI","Old Aquatic","Incident Reports","iNaturalist"),
-          exclude = c('Fungi','Plantae'),
-          excel_path = 'Master Incidence Report Records.xlsx',
-          sheet_name = 'Aquatic Reports',
-          excel_species_var = 'Submitted_Common_Name',
-          output_crs = 4326,
-          quiet = T)
+        all_species_results = tryCatch(
+          find_all_species_in_waterbody(
+            wb_poly,
+            in_shiny = T,
+            sources = c("SPI","Old Aquatic","Incident Reports","iNaturalist"),
+            exclude = c('Fungi','Plantae'),
+            excel_path = 'Master Incidence Report Records.xlsx',
+            sheet_name = 'Aquatic Reports',
+            excel_species_var = 'Submitted_Common_Name',
+            output_crs = 4326,
+            quiet = T),
+          error = function(e) (data.frame(result = "No records found for target waterbody"))
+        )
 
         all_sp_in_wbs(all_species_results)
       })
@@ -159,12 +162,255 @@ function(input, output, session) {
   clicked_lat = reactiveVal(NULL)
 
   observeEvent(input$wb_finder_map_click, {
+    # Which tab is clicked? Update that waterbody coordinate section.
+
     clicked_lng(input$wb_finder_map_click$lng)
     clicked_lat(input$wb_finder_map_click$lat)
     updateTextInput(inputId = 'wb_for_downst_lng',
                     value = clicked_lng())
     updateTextInput(inputId = 'wb_for_downst_lat',
                     value = clicked_lat())
+  })
+
+  # # # # # # # # INCIDENT REPORT TRACKING DASHBOARD # # # # # # # # #
+
+  data_colour = 'darkgreen'
+  hl_colour = 'darkred'
+
+  inc_dat = openxlsx::read.xlsx('Master Incidence Report Records.xlsx',
+                               sheet = 'Aquatic Reports') |>
+    dplyr::mutate(Date = openxlsx::convertToDate(Date)) |>
+    dplyr::mutate(year = lubridate::year(Date))
+
+  inc_dat_sf = inc_dat |>
+    dplyr::mutate(lon = as.numeric(Longitude),
+                  lat = as.numeric(Latitude)) |>
+    dplyr::filter(!is.na(lon),!is.na(lat)) |>
+    sf::st_as_sf(coords = c("lon","lat"),
+             crs = 4326)
+
+  # Reactive form of data - what for mouse events and add selected data to
+  # a reactiveVal object. Keep track of what data filter has been selected
+  # (e.g. date from the running total figure) - if the user clicks on a different
+  # filter type, switch to that one.
+
+  # filter_type_selected = reactiveVal()
+  #
+  # observeEvent(
+  #   c(input$reports_over_time_selected,
+  #     input$top_reported_species_selected),
+  #   {
+  #
+  #     browser()
+  #     filter_update = NULL
+  #
+  #     # Is there already a value for filter_type_selected() ?
+  #     # If so, find new filter_update selection and then
+  #     # wipe
+  #     if(!is.null(filter_type_selected())){
+  #       filter_type_selected(NULL)
+  #     }
+  #     # If one of these filters is not null, record filter type in filter_update object
+  #     if(!is.null(input$reports_over_time_selected)) filter_update = 'reports_over_time'
+  #     if(!is.null(input$top_reported_species_selected)) filter_update = 'top_reported_species'
+  #
+  #     if(!is.null(filter_update)){
+  #       # If filter_type_selected() is NULL, adopt the new filter right away.
+  #       if(is.null(filter_type_selected())) {
+  #         filter_type_selected(filter_update)
+  #       } else {
+  #         # Otherwise, test to see if its the same as the (new) filter type.
+  #         # test to see if filter_update object is distinct from current value (or NULL) of filter_type_selected
+  #         # If it is, apply filter type to reactiveVal.
+  #         if(filter_type_selected() != filter_update) filter_type_selected(filter_update)
+  #         # If it is the same, clear the filter reactiveVal.
+  #         if(filter_type_selected() == filter_update) filter_type_selected(NULL)
+  #       }
+  #     }
+  #     print(filter_type_selected())
+  #   })
+
+  # inc_dat_sel = reactive({
+  #   # Initially, all data is included.
+  #   d = inc_dat
+  #
+  #   # Depending on which type of filter has been activated by the user's mouse clicks,
+  #   # apply a filter to the data.
+  #   if(!is.null(filter_type_selected())){
+  #
+  #     # Year filter
+  #     if(filter_type_selected() == '')
+  #     reports_over_time
+  #   }
+  #   if(!is.null(input$reports_over_time_selected)){
+  #   d = d |>
+  #     dplyr::filter(year %in% input$reports_over_time_selected)
+  #   return(d)
+  #   }
+  #   if(!is.null(input$top_reported_species_selected)){
+  #     d = d |>
+  #       dplyr::filter(year %in% input$reports_over_time_selected)
+  #     return(d)
+  #   }
+  #   d
+  # })
+
+  # 1. Number of Reports per year
+  output$reports_over_time = renderPlot({
+
+    # browser()
+
+    num_reports_per_year = inc_dat |>
+      dplyr::group_by(year) |>
+      dplyr::summarise(number_reports = n()) |>
+      dplyr::filter(!is.na(year)) |>
+      dplyr::mutate(running_total = cumsum(number_reports))
+
+    # if(!is.null(inc_dat_sel()))
+    # num_reports_per_year_hl = inc_dat_sel() |>
+    #   dplyr::group_by(year) |>
+    #   dplyr::summarise(number_reports = n()) |>
+    #   dplyr::filter(!is.na(year)) |>
+    #   dplyr::mutate(running_total = cumsum(number_reports))
+
+    ggplot(data = num_reports_per_year) +
+      geom_line(aes(x = year,
+                    y = running_total),
+                group = 1) +
+      # geom_point(data = num_reports_per_year_hl,
+      #            aes(x = year,
+      #                y = running_total),
+      #            col = hl_colour,
+      #            fill = hl_colour) +
+      geom_point(
+        aes(x = year,
+            y = running_total#,
+            # tooltip = lapply(paste0('Year: ',year, '<br>Reports to date: ',running_total),shiny::HTML),
+            # data_id = lapply(paste0('Year: ',year, '<br>Reports to date: ',running_total),shiny::HTML)
+            # data_id = year
+        )
+      ) +
+      theme_minimal()
+
+    # girafe(ggobj = gg_point)
+    })
+
+  # 2. Top Reported Species
+  output$top_reported_species = renderPlot({
+    inc_dat |>
+      dplyr::count(Submitted_Common_Name) |>
+      dplyr::filter(!is.na(Submitted_Common_Name),
+                    Submitted_Common_Name != '?') |>
+      dplyr::arrange(dplyr::desc(n)) |>
+      dplyr::slice(c(1:10)) |>
+      dplyr::mutate(Submitted_Common_Name = as.factor(Submitted_Common_Name)) |>
+      dplyr::mutate(Submitted_Common_Name = forcats::fct_inorder(Submitted_Common_Name)) |>
+      ggplot() +
+      geom_col(
+        aes(x = Submitted_Common_Name,
+            y = n#,
+            # tooltip = Submitted_Common_Name,
+            # data_id = Submitted_Common_Name
+            ),
+        col = data_colour,
+        fill = data_colour
+        ) +
+      # geom_col(
+      #   data = inc_dat_sel(),
+      #   aes(x = Submitted_Common_Name,
+      #       y = n),
+      #   col = hl_colour,
+      #   fill = hl_colour
+      # ) +
+      labs(x = 'Submitted Common Name',
+           y = 'Count') +
+      coord_flip()
+
+    # girafe(ggobj = top_reported_species_g)
+  })
+
+  # 3. Confirmation status bar-plot
+  output$confirmation_status = renderPlot({
+    d_count = inc_dat |>
+      count(ID_Confirmation) |>
+      filter(!is.na(ID_Confirmation))
+
+    ggplot(d_count) +
+      geom_col(aes(x = ID_Confirmation,
+                   y = n,
+                   fill = ID_Confirmation)) +
+      geom_text(
+        aes(x = ID_Confirmation,
+            y = n/2,
+            label = lapply(
+              paste0(
+                ID_Confirmation,
+                "\n",
+                n),
+              shiny::HTML
+            )),
+            col = 'white') +
+          theme_minimal() +
+          scale_fill_brewer(palette = 'Dark2') +
+      theme(legend.position = 'none',
+            axis.title = element_blank(),
+            axis.text = element_blank())
+  })
+
+  # 4. Leaflet map of incident reports
+  output$inc_report_leaflet = renderLeaflet({
+    leaflet() |>
+      addTiles() |>
+      addCircleMarkers(
+        data = inc_dat_sf,
+        label = ~Submitted_Common_Name
+      )
+  })
+
+  # 5. Summary number of total reports
+  output$total_reports = renderText({
+    nrow(inc_dat)
+  })
+
+  # 6. Summary number of distinct species
+  output$distinct_sp_reports = renderText({
+    length(unique(inc_dat$Submitted_Common_Name))
+  })
+
+  # 7. Incident Tree Plot
+  output$outcome_tree_plot = renderPlotly({
+    outcome_summary = inc_dat |>
+      count(Outcome_and_or_Action)
+
+    plot_ly(
+      type='treemap',
+      labels= outcome_summary$Outcome_and_or_Action,
+      parents= ~rep('',length( outcome_summary$Outcome_and_or_Action)),#,
+      values= ~ outcome_summary$n,
+      # textinfo="label+value+percent parent+percent entry+percent root",
+      # domain=list(column=0)
+    )
+  })
+
+
+  # 8. Region Column Bar
+  output$region_column_bar = renderPlotly({
+    p = inc_dat |>
+    dplyr::rename(reg = Natural_Resource_Region) |>
+    dplyr::count(reg) |>
+    dplyr::filter(!is.na(reg)) |>
+    dplyr::mutate(reg = factor(reg)) |>
+    dplyr::arrange(dplyr::desc(n)) |>
+    mutate(reg = forcats::fct_inorder(reg)) |>
+    mutate(reg = forcats::fct_lump(reg, n = 4, w = n)) |>
+    ggplot() +
+    geom_col(aes(x = reg, y = n, fill = reg)) +
+      scale_fill_brewer(palette = 'Dark2') +
+      labs(x = '', y = '') +
+      theme(legend.position = 'none',
+            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+    ggplotly(p)
   })
 
   # # # Find Connected Waterbodies # # #
@@ -185,10 +431,11 @@ function(input, output, session) {
     #   )
     #   if(results == "Error connecting to BC Data Catalogue!"){stop("Sorry, Downstream analysis failed!")}
     # } else {
+    # browser()
       results = tryCatch(
         bcinvadeR::get_connected_waterbodies(
-          input$wb_for_downst,
-          c(as.numeric(input$wb_for_downst_lng),
+          # waterbody_name = input$wb_for_downst,
+          waterbody_coordinates = c(as.numeric(input$wb_for_downst_lng),
             as.numeric(input$wb_for_downst_lat)),
           in_shiny = T,
           the_session = session
@@ -197,6 +444,7 @@ function(input, output, session) {
       )
     # }
     waterbody_graph(results)
+    cat('Finished finding waterbody network.')
   })
 
   output$waterbody_graph_as_image = renderPlotly({
@@ -257,13 +505,150 @@ function(input, output, session) {
     }
   })
 
-  # # # Prioritization model # # #
+  # # # AIS Rangemaps # # #
 
+  # Read in priority list of AIS species (excel file), use it to update selectInput
+  pr_sp = vroom::vroom('priority_species_table.csv')
+
+  # Read in occurrence data for species (this is updated each time the 'publish_app.R'
+  # script is run)
+  occ_dat = sf::read_sf('occ_dat.gpkg')
+
+  # Calculate number of rows of data per species; add as label to species selector.
+  pr_sp = pr_sp |>
+    left_join(
+      occ_dat |>
+        sf::st_drop_geometry() |>
+        dplyr::count(Species) |>
+        dplyr::rename(name = Species)
+    ) |>
+    mutate(n = replace_na(n, 0)) |>
+    dplyr::mutate(label = paste0(name,' (',n,' records)'))
+
+
+  # Update species selector
+  shinyWidgets::updatePickerInput(session = session,
+                                  inputId = 'ais_rangemap_sp',
+                                  choices = pr_sp$label)
+
+  selected_species = reactive({
+    stringr::str_squish(stringr::str_remove(input$ais_rangemap_sp, ' \\(.*'))
+  })
+
+  occ_dat_sp = reactive({
+    occ_dat |>
+      dplyr::filter(Species %in% selected_species() | Species %in% stringr::str_to_title(selected_species()))
+  })
+
+  # build-in color palette
+  my_colours = glasbey.colors(length(unique(occ_dat$Species)))
+
+  # Create leaflet palette
+  occ_dat_pal = reactive({
+    leaflet::colorFactor(
+      palette = my_colours,
+      domain = unique(occ_dat$Species)
+    )
+  })
+
+  output$ais_rangemap_leaf = renderLeaflet({
+    leaflet::leaflet() |>
+      leaflet::addTiles() |>
+      leaflet::clearGroup(group = 'selected_species_circles') |>
+      leaflet::removeControl('selected_species_legend') |>
+      leaflet::addPolygons(
+        data = bcmaps::bc_bound() |>
+          sf::st_transform(4326),
+        col = 'black',
+        weight = 2,
+        fillColor = 'transparent'
+      ) |>
+      leaflet.extras::addResetMapButton()
+  })
+
+  observe({
+    req(!is.null(input$ais_rangemap_sp))
+    # Once a species is selected, add to map
+    l = leaflet::leafletProxy('ais_rangemap_leaf') |>
+      leaflet::clearGroup(group = 'selected_species_circles') |>
+      leaflet::clearGroup(group = 'selected_species_buffer') |>
+      leaflet::removeControl('selected_species_legend') |>
+      leaflet::addCircleMarkers(
+        data = occ_dat_sp(),
+        color = ~occ_dat_pal()(Species),
+        fillColor = ~occ_dat_pal()(Species),
+        label = ~Species,
+        group = 'selected_species_circles'
+      ) |>
+      leaflet::addLegend(
+        pal = occ_dat_pal(),
+        values = occ_dat_sp()$Species,
+        layerId = 'selected_species_legend',
+        title = 'Invasive Aquatic Species'
+      )
+
+    # If a buffer has been made, add to map.
+    if(!is.null(occ_dat_buffer())){
+    l = l |>
+      clearGroup('selected_species_buffer') |>
+      addPolygons(
+        data = occ_dat_buffer(),
+        color = ~occ_dat_pal()(Species),
+        fillColor = ~occ_dat_pal()(Species),
+        label = ~Species,
+        group = 'selected_species_buffer'
+      )
+    }
+    # Print out map
+    l
+  })
+
+  occ_dat_buffer = reactiveVal()
+
+  # Button that generates buffer around points.
+  observeEvent(input$make_ais_buffer, {
+
+    # browser()
+    species_to_buffer = unique(occ_dat_sp()$Species)
+
+    # Buffer x kilometers around the selected species.
+    result = sf::st_buffer(occ_dat_sp() |>
+                             dplyr::filter(Species == species_to_buffer) |>
+                             dplyr::group_by(Species) |>
+                             dplyr::summarise(),
+                  dist = 1000*input$ais_buffer_radius)
+
+    # Pop into the reactiveVal.
+    occ_dat_buffer(result)
+
+  })
+
+  # Button that generates raster heatmap.
+  observeEvent(input$make_ais_heatmap_raster, {
+    input$ais_raster_heatmap_res
+
+  })
+
+#   # # # Prioritization model # # #
+#
   occ_dat_for_p_model = spec_search_Server('p_model_layer')
 
-  # observe({
-  #   print(occ_dat_for_p_model())
-  # })
+  # As the user proceeds through each step of the prioritization model,
+  # use a reactive to keep track of which step is the one to focus on.
+  p_model_current_step = reactiveVal('focal_species_input_card')
+
+  all_card_ids = c('focal_species_input_card',
+                   'geog_units_input_card',
+                   'risk_layers_input_card',
+                   'run_model_card')
+  observe({
+    lapply(
+      all_card_ids,
+      \(x) shinyjs::removeClass(id = x, class = 'rainbow-btn')
+    )
+    shinyjs::addClass(id = p_model_current_step(),
+                      class = 'rainbow-btn')
+  })
 
   output$occ_data_results_text = renderText({
     if(sf::st_drop_geometry(occ_dat_for_p_model()[1,1]) == 'No search run yet.'){
@@ -273,8 +658,8 @@ function(input, output, session) {
     }
   })
 
-  shinyjs::removeClass('add_occ_data_to_p_model', c('btn','btn-default','unhooked-btn'))
-  shinyjs::addClass('rainbow-btn', 'rainbow-btn')
+  # shinyjs::removeClass('add_occ_data_to_p_model', c('btn','btn-default','unhooked-btn'))
+  # shinyjs::addClass('rainbow-btn', 'rainbow-btn')
 
   p_model = pmodel$new()
 
@@ -287,6 +672,9 @@ function(input, output, session) {
     p_model$add(role = 'occurrence', occ_dat_for_p_model())
 
     print_p_model_console_feedback()
+
+    # Update which card has highlighted border
+    p_model_current_step('geog_units_input_card')
     # withCallingHandlers({
     #   shinyjs::html("p_model_feedback", "")
     #   p_model$print()
@@ -295,11 +683,11 @@ function(input, output, session) {
     #   shinyjs::html(id = "p_model_feedback", html = m$message, add = TRUE)
     # })
 
-    bslib::accordion_panel_close(id = 'p_model_accordion', values = 'occ_dat_accordion')
-    bslib::accordion_panel_open(id = 'p_model_accordion', values = 'area_of_int_accordion')
+    # bslib::accordion_panel_close(id = 'p_model_accordion', values = 'occ_dat_accordion')
+    # bslib::accordion_panel_open(id = 'p_model_accordion', values = 'area_of_int_accordion')
   })
 
-  geog_unit_upload_ui = renderUI({
+  output$geog_unit_upload_ui = renderUI({
     req(input$geog_units_presets == 'custom_file')
     fileInput('custom_geog_units',
               label = 'Upload File (.gpkg, .zip)',
@@ -340,6 +728,9 @@ function(input, output, session) {
     p_model$add(role = 'geog_units', geog_units_choice())
 
     print_p_model_console_feedback()
+
+    # Update which card has highlighted border.
+    p_model_current_step('risk_layers_input_card')
   })
 
   risk_layers = reactive({
@@ -392,6 +783,8 @@ observeEvent(input$add_risk_layers_to_p_model, {
 
   print_p_model_console_feedback()
 
+  # Update which card has highlighted border.
+  p_model_current_step('run_model_card')
   })
 
   p_model_output = reactiveVal()
@@ -416,5 +809,20 @@ observeEvent(input$add_risk_layers_to_p_model, {
   output$p_model_feedback = shiny::renderText({
     # p_model$print()
     p_model_feedback()
+  })
+
+  output$coord_finder_panel = renderUI({
+    req(input$show_coord_map)
+      absolutePanel(
+        top = '100px',
+        right = '0px',
+        width = 400,
+        height = 400,
+        card(
+        p("(Click on the map to grab latitude / longitude)"),
+        leafletOutput('wb_finder_map'),
+        style = 'background-color: white;z-index:100;'
+        )
+      )
   })
 }
