@@ -3,4 +3,6 @@
 .Rhistory
 .RData
 .Ruserdata
-www/*
+app/www/*
+publishing_results/*
+app/rsconnect/*
