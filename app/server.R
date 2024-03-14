@@ -18,7 +18,7 @@ function(input, output, session) {
   }
 
 
-  bc = sf::read_sf('bc_shapefile.gpkg')
+  bc = sf::read_sf('bc_simple.shp')
 
   observeEvent(input$update_bcinvadeR, {
     showModal(
@@ -94,6 +94,8 @@ function(input, output, session) {
   observeEvent(input$search_for_all_sp_in_wb, {
     req(!is.null(input$all_sp_in_wbs_name) | (!is.null(input$all_sp_in_wb_lat) & !is.null(input$all_sp_in_wb_lng)))
 
+    buffer_size = input$waterbody_poly_buffer_size
+
     withProgress(
       message = 'Getting waterbody polygon',
       detail = 'Combining records...',
@@ -103,11 +105,14 @@ function(input, output, session) {
         wb_poly = get_waterbody_polygon(focus_wb_name = input$all_sp_in_wbs_name,
                                         focus_wb_coordinates = c(input$all_sp_in_wb_lng,input$all_sp_in_wb_lat))
 
+        # Buffer the waterbody polygon by, say, 100 meters.
+        wb_poly = sf::st_buffer(wb_poly, dist = buffer_size)
+
         all_species_results = tryCatch(
           find_all_species_in_waterbody(
             wb_poly,
             in_shiny = T,
-            sources = c("SPI","Old Aquatic","Incident Reports","iNaturalist"),
+            sources = input$all_sp_in_wbs_sources,
             exclude = c('Fungi','Plantae'),
             excel_path = 'Master Incidence Report Records.xlsx',
             sheet_name = 'Aquatic Reports',
@@ -166,6 +171,15 @@ function(input, output, session) {
 
     clicked_lng(input$wb_finder_map_click$lng)
     clicked_lat(input$wb_finder_map_click$lat)
+    # Apply the clicked lat and long to any text input asking for lat / lng.
+
+    # All species in 1 waterbody
+    updateTextInput(inputId = 'all_sp_in_wb_lng',
+                    value = clicked_lng())
+    updateTextInput(inputId = 'all_sp_in_wb_lat',
+                    value = clicked_lat())
+
+    # Connected Waterbodies
     updateTextInput(inputId = 'wb_for_downst_lng',
                     value = clicked_lng())
     updateTextInput(inputId = 'wb_for_downst_lat',
@@ -363,7 +377,8 @@ function(input, output, session) {
       addTiles() |>
       addCircleMarkers(
         data = inc_dat_sf,
-        label = ~Submitted_Common_Name
+        label = ~Submitted_Common_Name,
+        radius = 2
       )
   })
 
@@ -389,28 +404,31 @@ function(input, output, session) {
       values= ~ outcome_summary$n,
       # textinfo="label+value+percent parent+percent entry+percent root",
       # domain=list(column=0)
-    )
+    ) |>
+      plotly::layout(margin=list(l=0, r=0, t=0, b=0))
   })
 
 
   # 8. Region Column Bar
   output$region_column_bar = renderPlotly({
     p = inc_dat |>
-    dplyr::rename(reg = Natural_Resource_Region) |>
-    dplyr::count(reg) |>
-    dplyr::filter(!is.na(reg)) |>
-    dplyr::mutate(reg = factor(reg)) |>
-    dplyr::arrange(dplyr::desc(n)) |>
-    mutate(reg = forcats::fct_inorder(reg)) |>
-    mutate(reg = forcats::fct_lump(reg, n = 4, w = n)) |>
-    ggplot() +
-    geom_col(aes(x = reg, y = n, fill = reg)) +
+      dplyr::rename(reg = Natural_Resource_Region) |>
+      dplyr::count(reg) |>
+      dplyr::filter(!is.na(reg)) |>
+      dplyr::mutate(reg = stringr::str_replace_all(reg, '-', '\n')) |>
+      dplyr::mutate(reg = factor(reg)) |>
+      dplyr::arrange(dplyr::desc(n)) |>
+      mutate(reg = forcats::fct_inorder(reg)) |>
+      mutate(reg = forcats::fct_lump(reg, n = 4, w = n)) |>
+      ggplot() +
+      geom_col(aes(x = reg, y = n, fill = reg)) +
       scale_fill_brewer(palette = 'Dark2') +
       labs(x = '', y = '') +
       theme(legend.position = 'none',
             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 
-    ggplotly(p)
+    ggplotly(p) |>
+      plotly::layout(margin=list(l=0, r=0, t=0, b=0))
   })
 
   # # # Find Connected Waterbodies # # #
@@ -589,31 +607,46 @@ function(input, output, session) {
 
     # If a buffer has been made, add to map.
     if(!is.null(occ_dat_buffer())){
-    l = l |>
-      clearGroup('selected_species_buffer') |>
-      addPolygons(
-        data = occ_dat_buffer(),
-        color = ~occ_dat_pal()(Species),
-        fillColor = ~occ_dat_pal()(Species),
-        label = ~Species,
-        group = 'selected_species_buffer'
-      )
+      l = l |>
+        clearGroup('selected_species_buffer') |>
+        addPolygons(
+          data = occ_dat_buffer(),
+          color = ~occ_dat_pal()(Species),
+          fillColor = ~occ_dat_pal()(Species),
+          label = ~Species,
+          group = 'selected_species_buffer'
+        )
+    }
+    # If a raster has been made, add to map.
+    if(!is.null(occ_dat_raster())){
+      l = l |>
+        clearGroup('selected_species_raster') |>
+        leaflet::removeControl('selected_species_raster_legend') |>
+        addRasterImage(
+          x = occ_dat_raster(),
+          group = 'selected_species_raster'
+        ) |>
+        addLegend(pal = colorNumeric('Spectral',values(occ_dat_raster())),
+                  values = values(occ_dat_raster()),
+                  layerId = 'selected_species_raster_legend')
     }
     # Print out map
     l
   })
 
   occ_dat_buffer = reactiveVal()
+  occ_dat_raster = reactiveVal()
 
   # Button that generates buffer around points.
   observeEvent(input$make_ais_buffer, {
 
-    # browser()
+    req(nrow(occ_dat_sp()) > 0)
+
     species_to_buffer = unique(occ_dat_sp()$Species)
 
     # Buffer x kilometers around the selected species.
     result = sf::st_buffer(occ_dat_sp() |>
-                             dplyr::filter(Species == species_to_buffer) |>
+                             dplyr::filter(Species %in% species_to_buffer) |>
                              dplyr::group_by(Species) |>
                              dplyr::summarise(),
                   dist = 1000*input$ais_buffer_radius)
@@ -623,11 +656,44 @@ function(input, output, session) {
 
   })
 
+  # Download for AIS rangemap buffer polygon
+  output$rangemap_dl = downloadHandler(
+    filename = function() {
+      paste0(paste0(unique(occ_dat_sp()$Species),collapse='_'),'range_polygon.gpkg')
+    },
+    content = function(file) {
+        sf::write_sf(occ_dat_buffer(), file)
+    }
+  )
+
   # Button that generates raster heatmap.
   observeEvent(input$make_ais_heatmap_raster, {
-    input$ais_raster_heatmap_res
 
+    req(nrow(occ_dat_sp()) > 0)
+
+    # make blank raster of bc extent with user's chosen resolution
+    blank_rast = terra::rast(terra::vect(bc), res = 1000000 * input$ais_raster_heatmap_res)
+    blank_rast$val = 1
+    blank_rast = terra::project(blank_rast, terra::crs('WGS84'))
+    blank_rast = terra::mask(blank_rast, terra::vect(sf::st_transform(bc,4326)))
+
+    filled_rast = terra::rasterize(terra::vect(occ_dat_sp()),
+                                   blank_rast,
+                                   fun = length)
+
+    # Pop into the reactiveVal.
+    occ_dat_raster(filled_rast)
   })
+
+  # Download for AIS rangemap raster
+  output$heatmap_dl = downloadHandler(
+    filename = function() {
+      paste0(paste0(unique(occ_dat_sp()$Species),collapse='_'),'range_raster.tif')
+    },
+    content = function(file) {
+      terra::writeRaster(occ_dat_raster(), file)
+    }
+  )
 
 #   # # # Prioritization model # # #
 #
@@ -811,18 +877,32 @@ observeEvent(input$add_risk_layers_to_p_model, {
     p_model_feedback()
   })
 
-  output$coord_finder_panel = renderUI({
-    req(input$show_coord_map)
-      absolutePanel(
-        top = '100px',
-        right = '0px',
-        width = 400,
-        height = 400,
-        card(
-        p("(Click on the map to grab latitude / longitude)"),
-        leafletOutput('wb_finder_map'),
-        style = 'background-color: white;z-index:100;'
-        )
-      )
+  # To NOT trigger the shinyjs toggle on app launch, cache whether or
+  # not we are in the 'initial_load'
+  initial_load = reactiveVal(T)
+
+  observeEvent(input$show_coord_map, {
+    if(!initial_load()){
+      shinyjs::toggle(id = 'coord_finder_panel_div',anim = T,
+                      animType = 'slide')
+    }
+    initial_load(F) # Update value of 'initial_load' to be FALSE,
+    # which allows the above toggle to work upon click.
   })
+
+  # The below version works, but doesn't slide out pleasantly.
+  # output$coord_finder_panel = renderUI({
+  #   req(input$show_coord_map)
+  #     absolutePanel(
+  #       top = '100px',
+  #       right = '0px',
+  #       width = 400,
+  #       height = 400,
+  #       card(
+  #       p("(Click on the map to grab latitude / longitude)"),
+  #       leafletOutput('wb_finder_map'),
+  #       style = 'background-color: white;z-index:100;'
+  #       )
+  #     )
+  # })
 }

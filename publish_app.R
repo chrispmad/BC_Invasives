@@ -85,8 +85,8 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     dplyr::filter(name != 'Bullhead') |>
     dplyr::arrange(name)
 
-  write.csv(pr_sp, 'app/www/priority_species_table2.csv', row.names = F)
-
+  write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
+#
   # Do record search for all species of interest! This takes a minute.
   occ_dat_search_results = pr_sp$name |>
     lapply(\(x) tryCatch(bcinvadeR::grab_aq_occ_data(x),error=function(e)return(NULL)))

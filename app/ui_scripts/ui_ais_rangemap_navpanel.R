@@ -25,16 +25,24 @@ AIS_rangemap_navpanel = bslib::nav_panel(
         actionButton('make_ais_heatmap_raster',
                      'Make heatmap!'),
         numericInput('ais_raster_heatmap_res',
-                     'Pixel resolution',
-                     min = 0.01,
-                     max = 10,
-                     value = 1)
+                     'Pixel resolution (km^2)',
+                     min = 0.001,
+                     max = 0.1,
+                     step = 0.005,
+                     value = 0.01)
       ),
       h5("Downloads"),
       layout_column_wrap(
-        1/2,
-        downloadButton(outputId = 'rangemap_dl'),
-        downloadButton(outputId = 'heatmap_dl')
+        1/3,
+        capture::capture(
+          selector = "body",
+          filename = paste0("Rangemap_",Sys.Date(),"_screenshot.png"),
+          icon("camera"), "Capture",
+          style = 'padding:10px;display:grid;height:10vh;',
+          class = "btn-info"
+        ),
+        downloadButton(outputId = 'rangemap_dl', 'Polygon'),
+        downloadButton(outputId = 'heatmap_dl', 'Raster')
       )
     ),
     column(

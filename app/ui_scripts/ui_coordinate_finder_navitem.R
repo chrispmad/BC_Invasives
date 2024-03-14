@@ -16,7 +16,21 @@ coordinate_finder_navitem = nav_item(
              column(width = 4),
              style = 'padding:5px;'
            )
-    )
+    ),
+    style = 'justify-content:right;'
   ),
-  uiOutput('coord_finder_panel')
+  # uiOutput('coord_finder_panel'),
+  absolutePanel(
+    id = 'coord_finder_panel_div',
+    style = 'display:none;',
+    top = '100px',
+    right = '0px',
+    width = 400,
+    height = 400,
+    card(
+      p("(Click on the map to grab latitude / longitude)"),
+      leafletOutput('wb_finder_map'),
+      style = 'background-color: white;z-index:100;'
+    )
+  )
 )
