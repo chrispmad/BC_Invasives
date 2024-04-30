@@ -17,7 +17,6 @@ function(input, output, session) {
     })
   }
 
-
   bc = sf::read_sf('bc_simple.shp')
 
   observeEvent(input$update_bcinvadeR, {
