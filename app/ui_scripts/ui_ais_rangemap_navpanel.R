@@ -1,53 +1,68 @@
+button_bar = column(
+  width = 3,
+  shinyWidgets::switchInput(
+    inputId = 'search_type_input',
+    label = 'Search Type',
+    onLabel = 'Species',
+    offLabel = 'Waterbody',
+    value = T
+  ),
+  uiOutput('search_ui_output'),
+  uiOutput('date_filter_of_inspection_records'),
+  h5("Sources to Include", style = 'margin-bottom:-1rem;'),
+  checkboxGroupInput('all_sp_in_wbs_sources',
+                     label = '',
+                     choices = c("SPI","Old AIS Layer","Incidental Observations","iNaturalist"),
+                     selected = c("SPI","Old AIS Layer","Incidental Observations","iNaturalist"),
+                     inline = T,
+                     width = '100%'),
+  h5("Filters", style = 'margin-top:-1rem;'),
+  checkboxInput('retain_unconfirmed_reports','Include Unconfirmed Reports?',
+                value = F),
+  h5("Downloads", style = 'margin-top:-1rem;text-align:center;'),
+  p("Occurrence Data",style = 'margin-bottom:0rem;'),
+  layout_column_wrap(
+    1/2,
+    downloadButton('records_excel', 'Excel'),
+    downloadButton('records_gpkg', 'Spatial')
+  ),
+  p("Range Polygon / Raster", style = 'margin-bottom:0rem;'),
+  layout_column_wrap(
+    1/2,
+    downloadButton(outputId = 'rangemap_dl', 'Polygon'),
+    downloadButton(outputId = 'heatmap_dl', 'Raster')
+  ),
+  div(
+  capture::capture(
+    selector = "body",
+    filename = paste0("Rangemap_",Sys.Date(),"_screenshot.png"),
+    icon("camera"), "Screen Capture",
+    style = 'padding:10px;display:grid;height:10vh;',
+    class = "btn-info"
+  ),
+  style = 'display:grid;'
+  )
+)
+
+map_column = bslib::card(
+  leafletOutput('ais_rangemap_leaf', height = '80vh')
+)
+
+tbl_column =
+  bslib::card(
+    DT::DTOutput('records_as_table')
+)
+
 AIS_rangemap_navpanel = bslib::nav_panel(
   title = 'AIS Rangemaps',
   fluidRow(
-    column(
-      width = 2,
-      h5("Select Species"),
-      shinyWidgets::pickerInput('ais_rangemap_sp',
-                                '',
-                                choices = c('None'),
-                                multiple = T),
-      h5("Rangemap Buffer"),
-      bslib::layout_column_wrap(
-        1/2,
-        actionButton('make_ais_buffer',
-                     'Apply buffer!'),
-        numericInput('ais_buffer_radius',
-                     'Buffer radius (km)',
-                     min = 0.01,
-                     max = 500,
-                     value = 10)
-      ),
-      h5("Raster Heatmap"),
-      bslib::layout_column_wrap(
-        1/2,
-        actionButton('make_ais_heatmap_raster',
-                     'Make heatmap!'),
-        numericInput('ais_raster_heatmap_res',
-                     'Pixel resolution (km^2)',
-                     min = 0.001,
-                     max = 0.1,
-                     step = 0.005,
-                     value = 0.01)
-      ),
-      h5("Downloads"),
-      layout_column_wrap(
-        1/3,
-        capture::capture(
-          selector = "body",
-          filename = paste0("Rangemap_",Sys.Date(),"_screenshot.png"),
-          icon("camera"), "Capture",
-          style = 'padding:10px;display:grid;height:10vh;',
-          class = "btn-info"
-        ),
-        downloadButton(outputId = 'rangemap_dl', 'Polygon'),
-        downloadButton(outputId = 'heatmap_dl', 'Raster')
-      )
-    ),
-    column(
-      width = 10,
-      leafletOutput('ais_rangemap_leaf', height = '88vh')
+    button_bar,
+    column(width = 9,
+           bslib::layout_columns(
+             col_widths = c(6,6),
+             map_column,
+             tbl_column
+           )
     )
   )
 )
