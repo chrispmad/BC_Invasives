@@ -28,10 +28,12 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       publishing_results$error = TRUE
     }
   )
+
   print('Copied new version of master incident tracking sheet into app folder.')
 
   # Update the priority invasive species excel sheet and pull out species
   file.remove('app/www/AIS_priority_species.xlsx')
+
   tryCatch(
     file.copy(
       from = "J:/2 SCIENCE - Invasives/SPECIES/AIS_priority_species.xlsx",
@@ -42,6 +44,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       publishing_results$error = TRUE
     }
   )
+
   print('Copied new version of priority list into app folder.')
 
   # Did the file copying work?
@@ -50,45 +53,34 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     publishing_results$error = TRUE
   }
 
-  # Read in priority list of AIS species (excel file), use it to update selectInput
+  # Read in priority list of AIS species (excel file)
   pr_sp = readxl::read_excel('app/www/AIS_priority_species.xlsx',
                              skip = 20)
-
-  # # Format this terrible excel sheet
-  # data_start = min(which(pr_sp[,1] == 'Disease'))
-
-  # pr_sp = pr_sp[data_start:nrow(pr_sp),]
 
   names(pr_sp) <- c("group","status","name","genus","species")
 
   # Just for our species of interest.
   pr_sp = pr_sp |>
-    dplyr::filter(group == 'Fish' | name %in% c("Whirling disease") | stringr::str_detect(name, '(mussel|crayfish)'))
+    dplyr::filter(group == 'Fish' | name %in% c("Whirling disease") | stringr::str_detect(name, '(mussel|crayfish|mystery snail|mudsnail|clam|jellyfish|shrimp|waterflea)'))
 
   # Split out grouped species names into separate rows.
   pr_sp = pr_sp |>
-    # dplyr::mutate(name = dplyr::case_when(
-    #   stringr::str_detect(name, 'Snakehead') ~ 'Northern Snakehead',
-    #   name == 'Bullhead' ~ 'Yellow Bullhead',
-    #   name == 'Red bellied piranha*' ~ 'Red bellied piranha',
-    #   stringr::str_detect(name, '\\(') ~ stringr::str_remove_all(name,'\\(.*'),
-    #   T ~ name
-    # )) |>
     dplyr::mutate(name = stringr::str_squish(name)) |>
-    # dplyr::bind_rows(
-    #   tidyr::tibble(
-    #     group = rep("Fish", 4),
-    #     status = c("prevent","prevent",rep("management",2)),
-    #     name = c("Blotched Snakehead","Rainbow Snakehead",'Black Bullhead','Brown Bullhead'),
-    #     genus = c("Channa",'Channa','Ameiurus','Ameiurus'),
-    #     species = c("maculata","bleheri",'melas','nebulosus')
-    #   )
-    # ) |>
     dplyr::filter(name != 'Bullhead') |>
     dplyr::arrange(name)
 
-  write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
-#
+  # Add a couple alternate ways of spelling species common names.
+  pr_sp = pr_sp |>
+    dplyr::bind_rows(
+      tidyr::tibble(
+        group = c('Fish','Fish','Fish'),
+        status = c('Provincial EDRR','Provincial EDRR','Management'),
+        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed'),
+        genus = c('Misgurnus','Pimephales','Lepomis'),
+        species = c('anguillicaudatus','promelas','gibbosus')
+      )
+    )
+
   # Do record search for all species of interest! This takes a minute.
   occ_dat_search_results = pr_sp$name |>
     lapply(\(x) tryCatch(bcinvadeR::grab_aq_occ_data(x),error=function(e)return(NULL)))
@@ -97,13 +89,21 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   occ_dat_res_b = dplyr::mutate(occ_dat_res_b, Species = stringr::str_to_sentence(Species))
 
-  # For now, I have just one species name that's problematic: Rosy red fathead minnow.
-  # Most of these records in the BC data catalogue are listed as 'Fathead minnow'.
-  fathead_records = bcinvadeR::grab_aq_occ_data('fathead minnow')
-  # Throw these into our results.
-  occ_dat_search_results = occ_dat_search_results |>
-    dplyr::bind_rows(fathead_records |>
-                       dplyr::mutate(Species = 'Rosy red fathead minnow'))
+  # For species with multiple common names, homogenize the names to fit whatever
+  # is present in 'priority_species_table.xlsx' file.
+  occ_dat_res_b = occ_dat_res_b |>
+    dplyr::mutate(Species = dplyr::case_when(
+      Species == 'Oriental weatherfish' ~ 'Oriental weather loach',
+      Species == 'Fathead minnow' ~ 'Rosy red fathead minnow',
+      Species == 'Pumpkinseed' ~ 'Pumpkinseed sunfish',
+      T ~ Species
+    ))
+
+  # Drop those temporary additions that we used to find more records online etc.
+  pr_sp = pr_sp |>
+    dplyr::filter(!name %in% c('Oriental weatherfish','Fathead minnow','Pumpkinseed'))
+
+  write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
 
   sf::write_sf(occ_dat_res_b, 'app/www/occ_dat.gpkg')
 
