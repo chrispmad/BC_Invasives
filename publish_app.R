@@ -14,8 +14,10 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     error = FALSE
   )
 
-  file.remove('app/www/Master Incidence Report Records.xlsx')
-  print('Removed old version of incident report excel document.')
+  if(file.exists('app/www/Master Incidence Report Records.xlsx')) {
+    file.remove('app/www/Master Incidence Report Records.xlsx')
+    print('Removed old version of incident report excel document.')
+  }
 
   # Update the invasive tracker sheet
   tryCatch(
@@ -32,7 +34,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   print('Copied new version of master incident tracking sheet into app folder.')
 
   # Update the priority invasive species excel sheet and pull out species
-  file.remove('app/www/AIS_priority_species.xlsx')
+  if(file.exists('app/www/AIS_priority_species.xlsx')) file.remove('app/www/AIS_priority_species.xlsx')
 
   tryCatch(
     file.copy(
@@ -52,6 +54,19 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     publishing_results$error_at = 'excel_copying'
     publishing_results$error = TRUE
   }
+
+  file.remove('app/www/WLRS_contacts.xlsx')
+  # Copy over the excel file listing WLRS regional contacts
+  tryCatch(
+    file.copy(
+      from = "J:/2 SCIENCE - Invasives/GENERAL/Communications/WLRS_Regions_Contacts_for_AIS.xlsx",
+      to = 'app/www/WLRS_contacts.xlsx'
+    ),
+    error = function(e) {
+      publishing_results$error_at = 'excel_copying_contact_list'
+      publishing_results$error = TRUE
+    }
+  )
 
   # Read in priority list of AIS species (excel file)
   pr_sp = readxl::read_excel('app/www/AIS_priority_species.xlsx',
@@ -73,13 +88,16 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   pr_sp = pr_sp |>
     dplyr::bind_rows(
       tidyr::tibble(
-        group = c('Fish','Fish','Fish'),
-        status = c('Provincial EDRR','Provincial EDRR','Management'),
-        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed'),
-        genus = c('Misgurnus','Pimephales','Lepomis'),
-        species = c('anguillicaudatus','promelas','gibbosus')
+        group = c('Fish','Fish','Fish','Fish'),
+        status = c('Provincial EDRR','Provincial EDRR','Management','Management'),
+        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Carp'),
+        genus = c('Misgurnus','Pimephales','Lepomis','Cyprinus'),
+        species = c('anguillicaudatus','promelas','gibbosus','carpio')
       )
     )
+
+  # Ensure species' common names are Sentence case.
+  pr_sp$name = stringr::str_to_sentence(pr_sp$name)
 
   # Do record search for all species of interest! This takes a minute.
   occ_dat_search_results = pr_sp$name |>
@@ -89,6 +107,12 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   occ_dat_res_b = dplyr::mutate(occ_dat_res_b, Species = stringr::str_to_sentence(Species))
 
+  # Just include records that had coordinates within BC's bounding box.
+  occ_dat_res_b = occ_dat_res_b |>
+    sf::st_transform(3005) |>
+    sf::st_filter(sf::st_as_sfc(sf::st_bbox(dplyr::summarise(bcmaps::bc_bound())))) |>
+    sf::st_transform(4326)
+
   # For species with multiple common names, homogenize the names to fit whatever
   # is present in 'priority_species_table.xlsx' file.
   occ_dat_res_b = occ_dat_res_b |>
@@ -96,8 +120,15 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       Species == 'Oriental weatherfish' ~ 'Oriental weather loach',
       Species == 'Fathead minnow' ~ 'Rosy red fathead minnow',
       Species == 'Pumpkinseed' ~ 'Pumpkinseed sunfish',
+      Species %in% c("Carp","European Carp","Common Carp") ~ "Common carp",
       T ~ Species
     ))
+
+  # In case we've picked up some Asian Carp or other species that
+  # we might not actually want because they're not (yet?) in BC, drop those.
+  occ_dat_res_b = occ_dat_res_b |>
+    dplyr::filter(!Species %in% c("Asian Carp","Grass Carp","Silver Carp","Black Carp",
+                                  "Bighead Carp"))
 
   # Drop those temporary additions that we used to find more records online etc.
   pr_sp = pr_sp |>

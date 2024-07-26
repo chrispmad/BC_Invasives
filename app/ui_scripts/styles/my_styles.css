@@ -56,3 +56,9 @@
           transform: scale(1) translateY(-1.5rem);
         }
       }
+
+.leaflet-tooltip{
+  background: transparent !important;
+  border: transparent !important;
+  box-shadow: none !important;
+}

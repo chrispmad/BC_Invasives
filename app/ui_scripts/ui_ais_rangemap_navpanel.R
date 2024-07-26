@@ -9,6 +9,7 @@ button_bar = column(
   ),
   uiOutput('search_ui_output'),
   uiOutput('date_filter_of_inspection_records'),
+  checkboxInput('map_pane_filter_sel',label="Filter Table with Map"),
   h5("Sources to Include", style = 'margin-bottom:-1rem;'),
   checkboxGroupInput('all_sp_in_wbs_sources',
                      label = '',
@@ -49,19 +50,31 @@ map_column = bslib::card(
 )
 
 tbl_column =
-  bslib::card(
-    DT::DTOutput('records_as_table')
-)
+  # bslib::card(
+    # bslib::card_body(
+      DT::DTOutput('records_as_table', height = '100%', width = '100%')#,
+      # style = "margin-top:1rem !important;"
+    # ),
+    # style = "top:-3rem; left:-1rem;"
+# )
 
 AIS_rangemap_navpanel = bslib::nav_panel(
   title = 'AIS Rangemaps',
   fluidRow(
     button_bar,
     column(width = 9,
-           bslib::layout_columns(
-             col_widths = c(6,6),
+           # bslib::layout_columns(
+           #   col_widths = c(6,6),
+           #   map_column,
+           #   tbl_column
+           # )
+           bslib::page_navbar(
              map_column,
-             tbl_column
+             sidebar = sidebar(
+               tbl_column,
+               width = '50%',
+               position = 'right'
+             )
            )
     )
   )
