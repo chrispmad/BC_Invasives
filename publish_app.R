@@ -19,6 +19,11 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     print('Removed old version of incident report excel document.')
   }
 
+  if(file.exists('app/www/Master Incidence Report Records.xlsx')) {
+    file.remove('app/www/Master Incidence Report Records Terrestrial.xlsx')
+    print('Removed old version of terrestrial incident report excel document.')
+  }
+
   # Update the invasive tracker sheet
   tryCatch(
     file.copy(
@@ -32,6 +37,41 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   )
 
   print('Copied new version of master incident tracking sheet into app folder.')
+
+  # Same but for terrestrial tracker sheet
+  terr_excel_files = list.files(path = "V:/Ecosystems/Conservation Science/Invasive Species/SPECIES/5_Incidental Observations/",
+             pattern = "Master.*xlsx",
+             full.names = T)
+  # Which is the biggest / most recent of these files.
+  terr_excel_info = terr_excel_files |>
+    lapply(\(x) as.data.frame(file.info(x))) |>
+    dplyr::bind_rows()
+
+  biggest_terr_excel = which(terr_excel_info$size == max(terr_excel_info$size))
+  most_recent_terr_excel = which(terr_excel_info$mtime == max(terr_excel_info$mtime))
+
+  if(biggest_terr_excel == most_recent_terr_excel){
+    terr_to_grab = biggest_terr_excel
+  } else {
+    terr_to_grab = NULL
+  }
+
+  terr_file_name = stringr::str_extract(terr_excel_files[terr_to_grab], "(?<=\\/)[^\\/]+.xlsx")
+
+  if(!is.null(terr_to_grab)){
+    tryCatch(
+      file.copy(
+        from = paste0("V:/Ecosystems/Conservation Science/Invasive Species/SPECIES/5_Incidental Observations/",terr_file_name),
+        to = 'app/www/Master Incidence Report Records Terrestrial.xlsx'
+      ),
+      error = function(e) {
+        publishing_results$error_at = 'excel_copying_master_incident_terrestrial'
+        publishing_results$error = TRUE
+      }
+    )
+  }
+
+  print('Copied new version of TERRESTRIAL master incident tracking sheet into app folder.')
 
   # Update the priority invasive species excel sheet and pull out species
   if(file.exists('app/www/AIS_priority_species.xlsx')) file.remove('app/www/AIS_priority_species.xlsx')

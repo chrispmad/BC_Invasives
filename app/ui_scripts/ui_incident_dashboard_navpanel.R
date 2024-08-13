@@ -1,5 +1,5 @@
 incident_dashboard_navpanel = bslib::nav_panel(
-  title = 'Incident Reports',
+  title = 'Incidence Reports',
   fluidRow(
     column(
       width = 4,
