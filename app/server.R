@@ -15,7 +15,8 @@ function(input, output, session) {
 
   source('server_scripts/incident_report_tab.R', local = T)$value
 
-  source('server_scripts/find_connected_waterbodies_tab.R', local = T)$value
+  source('server_scripts/regional_contacts_tab.R', local = T)$value
+  # source('server_scripts/find_connected_waterbodies_tab.R', local = T)$value
 
   source('server_scripts/hide_coord_finder_map.R', local = T)$value
 
