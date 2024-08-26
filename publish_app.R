@@ -128,11 +128,12 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   pr_sp = pr_sp |>
     dplyr::bind_rows(
       tidyr::tibble(
-        group = c('Fish','Fish','Fish','Fish'),
-        status = c('Provincial EDRR','Provincial EDRR','Management','Management'),
-        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Carp'),
-        genus = c('Misgurnus','Pimephales','Lepomis','Cyprinus'),
-        species = c('anguillicaudatus','promelas','gibbosus','carpio')
+        group = c('Fish','Fish','Fish','Fish','Other invertebrates
+'),
+        status = c('Provincial EDRR','Provincial EDRR','Management','Management','Management'),
+        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Carp','Common Freshwater Jellyfish'),
+        genus = c('Misgurnus','Pimephales','Lepomis','Cyprinus','Craspedacusta'),
+        species = c('anguillicaudatus','promelas','gibbosus','carpio','sowerbyi')
       )
     )
 
@@ -160,6 +161,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       Species == 'Oriental weatherfish' ~ 'Oriental weather loach',
       Species == 'Fathead minnow' ~ 'Rosy red fathead minnow',
       Species == 'Pumpkinseed' ~ 'Pumpkinseed sunfish',
+      Species == 'Common freshwater jellyfish' ~ 'Freshwater jellyfish',
       Species %in% c("Carp","European Carp","Common Carp") ~ "Common carp",
       T ~ Species
     ))
@@ -172,7 +174,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   # Drop those temporary additions that we used to find more records online etc.
   pr_sp = pr_sp |>
-    dplyr::filter(!name %in% c('Oriental weatherfish','Fathead minnow','Pumpkinseed'))
+    dplyr::filter(!name %in% c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Common freshwater jellyfish'))
 
   write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
 
@@ -183,7 +185,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   if(!publishing_results$error){
     # Update bcinvadeR R package
     if('bcinvadeR' %in% devtools::loaded_packages()$package){
-      unload('bcinvadeR')
+      devtools::unload('bcinvadeR')
     }
     devtools::install_github('chrispmad/bcinvadeR',
                              upgrade = 'never')
