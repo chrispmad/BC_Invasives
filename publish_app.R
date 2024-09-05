@@ -19,10 +19,10 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     print('Removed old version of incident report excel document.')
   }
 
-  if(file.exists('app/www/Master Incidence Report Records.xlsx')) {
-    file.remove('app/www/Master Incidence Report Records Terrestrial.xlsx')
-    print('Removed old version of terrestrial incident report excel document.')
-  }
+  # if(file.exists('app/www/Master Incidence Report Records.xlsx')) {
+  #   file.remove('app/www/Master Incidence Report Records Terrestrial.xlsx')
+  #   print('Removed old version of terrestrial incident report excel document.')
+  # }
 
   # Update the invasive tracker sheet
   tryCatch(
@@ -38,40 +38,40 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   print('Copied new version of master incident tracking sheet into app folder.')
 
-  # Same but for terrestrial tracker sheet
-  terr_excel_files = list.files(path = "V:/Ecosystems/Conservation Science/Invasive Species/SPECIES/5_Incidental Observations/",
-             pattern = "Master.*xlsx",
-             full.names = T)
-  # Which is the biggest / most recent of these files.
-  terr_excel_info = terr_excel_files |>
-    lapply(\(x) as.data.frame(file.info(x))) |>
-    dplyr::bind_rows()
-
-  biggest_terr_excel = which(terr_excel_info$size == max(terr_excel_info$size))
-  most_recent_terr_excel = which(terr_excel_info$mtime == max(terr_excel_info$mtime))
-
-  if(biggest_terr_excel == most_recent_terr_excel){
-    terr_to_grab = biggest_terr_excel
-  } else {
-    terr_to_grab = NULL
-  }
-
-  terr_file_name = stringr::str_extract(terr_excel_files[terr_to_grab], "(?<=\\/)[^\\/]+.xlsx")
-
-  if(!is.null(terr_to_grab)){
-    tryCatch(
-      file.copy(
-        from = paste0("V:/Ecosystems/Conservation Science/Invasive Species/SPECIES/5_Incidental Observations/",terr_file_name),
-        to = 'app/www/Master Incidence Report Records Terrestrial.xlsx'
-      ),
-      error = function(e) {
-        publishing_results$error_at = 'excel_copying_master_incident_terrestrial'
-        publishing_results$error = TRUE
-      }
-    )
-  }
-
-  print('Copied new version of TERRESTRIAL master incident tracking sheet into app folder.')
+  # # Same but for terrestrial tracker sheet
+  # terr_excel_files = list.files(path = "V:/Ecosystems/Conservation Science/Invasive Species/SPECIES/5_Incidental Observations/",
+  #            pattern = "Master.*xlsx",
+  #            full.names = T)
+  # # Which is the biggest / most recent of these files.
+  # terr_excel_info = terr_excel_files |>
+  #   lapply(\(x) as.data.frame(file.info(x))) |>
+  #   dplyr::bind_rows()
+  #
+  # biggest_terr_excel = which(terr_excel_info$size == max(terr_excel_info$size))
+  # most_recent_terr_excel = which(terr_excel_info$mtime == max(terr_excel_info$mtime))
+  #
+  # if(biggest_terr_excel == most_recent_terr_excel){
+  #   terr_to_grab = biggest_terr_excel
+  # } else {
+  #   terr_to_grab = NULL
+  # }
+  #
+  # terr_file_name = stringr::str_extract(terr_excel_files[terr_to_grab], "(?<=\\/)[^\\/]+.xlsx")
+  #
+  # if(!is.null(terr_to_grab)){
+  #   tryCatch(
+  #     file.copy(
+  #       from = paste0("V:/Ecosystems/Conservation Science/Invasive Species/SPECIES/5_Incidental Observations/",terr_file_name),
+  #       to = 'app/www/Master Incidence Report Records Terrestrial.xlsx'
+  #     ),
+  #     error = function(e) {
+  #       publishing_results$error_at = 'excel_copying_master_incident_terrestrial'
+  #       publishing_results$error = TRUE
+  #     }
+  #   )
+  # }
+  #
+  # print('Copied new version of TERRESTRIAL master incident tracking sheet into app folder.')
 
   # Update the priority invasive species excel sheet and pull out species
   if(file.exists('app/www/AIS_priority_species.xlsx')) file.remove('app/www/AIS_priority_species.xlsx')
@@ -128,12 +128,11 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   pr_sp = pr_sp |>
     dplyr::bind_rows(
       tidyr::tibble(
-        group = c('Fish','Fish','Fish','Fish','Other invertebrates
-'),
-        status = c('Provincial EDRR','Provincial EDRR','Management','Management','Management'),
-        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Carp','Common Freshwater Jellyfish'),
-        genus = c('Misgurnus','Pimephales','Lepomis','Cyprinus','Craspedacusta'),
-        species = c('anguillicaudatus','promelas','gibbosus','carpio','sowerbyi')
+        group = c('Fish','Fish','Fish','Fish','Other invertebrates','Fish'),
+        status = c('Provincial EDRR','Provincial EDRR','Management','Management','Management','Management'),
+        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Carp','Common Freshwater Jellyfish','Bluegill'),
+        genus = c('Misgurnus','Pimephales','Lepomis','Cyprinus','Craspedacusta','Lepomis'),
+        species = c('anguillicaudatus','promelas','gibbosus','carpio','sowerbyi','macrochirus')
       )
     )
 
@@ -162,6 +161,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       Species == 'Fathead minnow' ~ 'Rosy red fathead minnow',
       Species == 'Pumpkinseed' ~ 'Pumpkinseed sunfish',
       Species == 'Common freshwater jellyfish' ~ 'Freshwater jellyfish',
+      Species == 'Bluegill' ~ 'Bluegill sunfish',
       Species %in% c("Carp","European Carp","Common Carp") ~ "Common carp",
       T ~ Species
     ))
@@ -174,7 +174,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   # Drop those temporary additions that we used to find more records online etc.
   pr_sp = pr_sp |>
-    dplyr::filter(!name %in% c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Common freshwater jellyfish'))
+    dplyr::filter(!name %in% c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Common freshwater jellyfish','Bluegill'))
 
   write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
 
