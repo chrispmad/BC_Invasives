@@ -2,6 +2,8 @@
 # publish this app has failed; if so, don't attempt any of the stuff below,
 # as that will very likely fail again.
 
+lan_folder = "//SFP.IDIR.BCGOV/S140/S40203/RSD_ FISH & AQUATIC HABITAT BRANCH/General/"
+
 setwd(here::here())
 
 print("Beginning republishing")
@@ -27,7 +29,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   # Update the invasive tracker sheet
   tryCatch(
     file.copy(
-      from = "J:/2 SCIENCE - Invasives/SPECIES/5_Incidental Observations/Master Incidence Report Records.xlsx",
+      from = paste0(lan_folder,"2 SCIENCE - Invasives/SPECIES/5_Incidental Observations/Master Incidence Report Records.xlsx"),
       to = 'app/www/Master Incidence Report Records.xlsx'
     ),
     error = function(e) {
@@ -78,7 +80,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   tryCatch(
     file.copy(
-      from = "J:/2 SCIENCE - Invasives/SPECIES/AIS_priority_species.xlsx",
+      from = paste0(lan_folder,"2 SCIENCE - Invasives/SPECIES/AIS_priority_species.xlsx"),
       to = 'app/www/AIS_priority_species.xlsx'
     ),
     error = function(e) {
@@ -99,7 +101,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   # Copy over the excel file listing WLRS regional contacts
   tryCatch(
     file.copy(
-      from = "J:/2 SCIENCE - Invasives/GENERAL/Communications/WLRS_Regions_Contacts_for_AIS.xlsx",
+      from = paste0(lan_folder,"2 SCIENCE - Invasives/GENERAL/Communications/WLRS_Regions_Contacts_for_AIS.xlsx"),
       to = 'app/www/WLRS_contacts.xlsx'
     ),
     error = function(e) {
