@@ -176,7 +176,11 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   # Drop those temporary additions that we used to find more records online etc.
   pr_sp = pr_sp |>
-    dplyr::filter(!name %in% c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Common freshwater jellyfish','Bluegill'))
+    dplyr::filter(!name %in% c('Oriental weatherfish',
+                               'Fathead minnow',
+                               'Pumpkinseed',
+                               'Common freshwater jellyfish',
+                               'Bluegill'))
 
   write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
 
