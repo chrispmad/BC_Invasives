@@ -130,11 +130,17 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   pr_sp = pr_sp |>
     dplyr::bind_rows(
       tidyr::tibble(
-        group = c('Fish','Fish','Fish','Fish','Other invertebrates','Fish'),
-        status = c('Provincial EDRR','Provincial EDRR','Management','Management','Management','Management'),
-        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Carp','Common Freshwater Jellyfish','Bluegill'),
-        genus = c('Misgurnus','Pimephales','Lepomis','Cyprinus','Craspedacusta','Lepomis'),
-        species = c('anguillicaudatus','promelas','gibbosus','carpio','sowerbyi','macrochirus')
+        group = c('Fish','Fish','Fish','Fish','Other invertebrates','Fish',
+                  'Other invertebrates','Other invertebrates','Other invertebrates',
+                  'Fish'),
+        status = c('Provincial EDRR','Provincial EDRR','Management','Management','Management','Management',
+                   'Provincial Containment','Provincial Containment','Provincial Containment','Management'),
+        name = c('Oriental weatherfish','Fathead minnow','Pumpkinseed','Carp','Common Freshwater Jellyfish','Bluegill',
+                 'Asiatic clam','Golden clam','Good luck clam','Yellow pickerel'),
+        genus = c('Misgurnus','Pimephales','Lepomis','Cyprinus','Craspedacusta','Lepomis',
+                  'Corbicula','Corbicula','Corbicula','Sander'),
+        species = c('anguillicaudatus','promelas','gibbosus','carpio','sowerbyi','macrochirus',
+                    'fluminea','fluminea','fluminea','vitreus')
       )
     )
 
@@ -164,6 +170,8 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       Species == 'Pumpkinseed' ~ 'Pumpkinseed sunfish',
       Species == 'Common freshwater jellyfish' ~ 'Freshwater jellyfish',
       Species == 'Bluegill' ~ 'Bluegill sunfish',
+      Species == 'Yellow pickerel' ~ 'Walleye',
+      Species %in% c("Asiatic clam","Golden clam","Good luck clam") ~ 'Asian clam',
       Species %in% c("Carp","European Carp","Common Carp") ~ "Common carp",
       T ~ Species
     ))
@@ -180,7 +188,11 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
                                'Fathead minnow',
                                'Pumpkinseed',
                                'Common freshwater jellyfish',
-                               'Bluegill'))
+                               'Bluegill',
+                               'Asiatic clam',
+                               'Golden clam',
+                               'Good luck clam',
+                               'Yellow pickerel'))
 
   write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
 
