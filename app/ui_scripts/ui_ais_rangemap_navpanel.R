@@ -68,14 +68,14 @@ AIS_rangemap_navpanel = bslib::nav_panel(
            #   map_column,
            #   tbl_column
            # )
-           bslib::page_navbar(
+           # bslib::page_navbar(
              map_column,
              sidebar = sidebar(
                tbl_column,
                width = '50%',
                position = 'right'
              )
-           )
+           # )
     )
   )
 )
