@@ -1,4 +1,7 @@
-library(tidyverse)
+cat("This script updates the BC Invasives Dashboard (https://chrispmadsen.shinyapps.io/bc_invasives_dashboard/)\n")
+
+invisible(library(tidyverse))
+
 # Check to see if a previous attempt to automatically
 # publish this app has failed; if so, don't attempt any of the stuff below,
 # as that will very likely fail again.
@@ -170,12 +173,25 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   pr_sp = gather_ais_data(lan_root = lan_folder,
                   onedrive_wd = onedrive_wd,
-                  data = 'species list')
+                  data = 'species list') |>
+    dplyr::filter(!name %in% c('Oriental weatherfish',
+                               'Fathead minnow',
+                               'Pumpkinseed',
+                               'Common freshwater jellyfish',
+                               'Bluegill',
+                               'Mosquitofish',
+                               'Asiatic clam',
+                               'Golden clam',
+                               'Good luck clam',
+                               'Yellow pickerel'))
+
+  # names(pr_sp) = stringr::str_to_title(names(pr_sp))
 
   occ_dat_res_b = gather_ais_data(lan_root = lan_folder,
                           onedrive_wd = onedrive_wd,
                           data = 'occurrences',
-                          redo = T)
+                          redo = T,
+                          excel_path = "app/www/Master Incidence Report Records.xlsx")
 
   write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
 
