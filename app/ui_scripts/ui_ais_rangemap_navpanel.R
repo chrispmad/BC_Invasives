@@ -1,5 +1,5 @@
 button_bar = column(
-  width = 3,
+  width = 12,
   shinyWidgets::switchInput(
     inputId = 'search_type_input',
     label = 'Search Type',
@@ -60,22 +60,18 @@ tbl_column =
 
 AIS_rangemap_navpanel = bslib::nav_panel(
   title = 'AIS Rangemaps',
-  fluidRow(
+  bslib::layout_columns(
+    col_widths = c(3,9),
     button_bar,
-    column(width = 9,
-           # bslib::layout_columns(
-           #   col_widths = c(6,6),
-           #   map_column,
-           #   tbl_column
-           # )
-           # bslib::page_navbar(
-             map_column,
-             sidebar = sidebar(
-               tbl_column,
-               width = '50%',
-               position = 'right'
-             )
-           # )
+    card(
+      layout_sidebar(
+        map_column,
+        sidebar = sidebar(
+          tbl_column,
+          width = '50%',
+          position = 'right'
+        )
+      )
     )
   )
 )
