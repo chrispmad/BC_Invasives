@@ -70,7 +70,8 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     publishing_results$error = TRUE
   }
 
-  file.remove('app/www/WLRS_contacts.xlsx')
+  if(file.exists('app/www/WLRS_contacts.xlsx')) file.remove('app/www/WLRS_contacts.xlsx')
+
   # Copy over the excel file listing WLRS regional contacts
   tryCatch(
     file.copy(

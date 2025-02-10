@@ -3,7 +3,6 @@ library(tidyverse)
 library(bslib)
 library(devtools)
 library(bcinvadeR)
-# library(ggiraph)
 library(leaflet)
 library(shinyjs)
 library(plotly)
@@ -23,6 +22,7 @@ source('ui_scripts/ui_info_navpanel.R')
 source('ui_scripts/ui_coordinate_finder_navitem.R')
 
 ui = page_navbar(
+  fillable = T,
   shinyjs::useShinyjs(),
   shiny::includeCSS('ui_scripts/styles/my_styles.css'),
   theme = bcinv_theme,
@@ -32,6 +32,7 @@ ui = page_navbar(
     shiny::icon('o', class = 'swimming-fish-bub'),
     shiny::icon('o', class = 'swimming-fish-bub')
   ),
+  # print("We've loaded in the header using a tagList"),
   # species_search_navpanel,
   AIS_rangemap_navpanel,
   incident_dashboard_navpanel,

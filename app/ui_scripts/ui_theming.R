@@ -1,6 +1,7 @@
 bcinv_theme = bs_theme(bootswatch = 'cerulean',
                        primary = "#168eb075",
-                       secondary = "#48DAC6"
+                       secondary = "#48DAC6",
+                       "font-size-base" = "0.8rem"
 )
 
 bcinv_theme = bs_add_rules(
@@ -10,7 +11,7 @@ bcinv_theme = bs_add_rules(
   }
 
   .unhooked-btn {
-  background: grey;
+    background: grey;
   }
 
   .hide_panel {
