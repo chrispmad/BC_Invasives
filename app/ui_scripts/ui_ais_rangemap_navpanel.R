@@ -11,7 +11,7 @@ button_bar = card(
     ),
     uiOutput('search_ui_output'),
     uiOutput('date_filter_of_inspection_records'),
-    div(checkboxInput('map_pane_filter_sel',label="Filter Table with Map"),style="margin-top:-1rem;"),
+    div(checkboxInput('map_pane_filter_sel',label="Filter Table with Map"),style="margin-top:-0.5rem;"),
     h5("Sources to Include", style = 'margin-bottom:-1rem;'),
     checkboxGroupInput('all_sp_in_wbs_sources',
                        label = '',
