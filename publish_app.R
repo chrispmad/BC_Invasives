@@ -125,42 +125,6 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   #
   # Ensure species' common names are Sentence case.
   pr_sp$name = stringr::str_to_sentence(pr_sp$name)
-  #
-  # # Do record search for all species of interest! This takes a minute.
-  # occ_dat_search_results = pr_sp$name |>
-  #   lapply(\(x) tryCatch(bcinvadeR::grab_aq_occ_data(x),error=function(e)return(NULL)))
-  #
-  # occ_dat_res_b = dplyr::bind_rows(occ_dat_search_results)
-
-  # # occ_dat_res_b = dplyr::mutate(occ_dat_res_b, Species = stringr::str_to_sentence(Species))
-
-  # # Just include records that had coordinates within BC's bounding box.
-  # occ_dat_res_b = occ_dat_res_b |>
-  #   sf::st_transform(3005) |>
-  #   sf::st_filter(sf::st_as_sfc(sf::st_bbox(dplyr::summarise(bcmaps::bc_bound())))) |>
-  #   sf::st_transform(4326)
-
-  # # For species with multiple common names, homogenize the names to fit whatever
-  # # is present in 'priority_species_table.xlsx' file.
-  # occ_dat_res_b = occ_dat_res_b |>
-  #   dplyr::mutate(Species = dplyr::case_when(
-  #     Species == 'Oriental weatherfish' ~ 'Oriental weather loach',
-  #     Species == 'Fathead minnow' ~ 'Rosy red fathead minnow',
-  #     Species == 'Mosquitofish' ~ 'Western mosquitofish',
-  #     Species == 'Pumpkinseed' ~ 'Pumpkinseed sunfish',
-  #     Species == 'Common freshwater jellyfish' ~ 'Freshwater jellyfish',
-  #     Species == 'Bluegill' ~ 'Bluegill sunfish',
-  #     Species == 'Yellow pickerel' ~ 'Walleye',
-  #     Species %in% c("Asiatic clam","Golden clam","Good luck clam") ~ 'Asian clam',
-  #     Species %in% c("Carp","European Carp","Common Carp") ~ "Common carp",
-  #     T ~ Species
-  #   ))
-
-  # # In case we've picked up some Asian Carp or other species that
-  # # we might not actually want because they're not (yet?) in BC, drop those.
-  # occ_dat_res_b = occ_dat_res_b |>
-  #   dplyr::filter(!Species %in% c("Asian Carp","Grass Carp","Silver Carp","Black Carp",
-  #                                 "Bighead Carp"))
 
   # Drop those temporary additions that we used to find more records online etc.
   pr_sp = pr_sp |>
@@ -175,27 +139,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
                                'Good luck clam',
                                'Yellow pickerel'))
 
-  # pr_sp = gather_ais_data(lan_root = lan_folder,
-  #                 onedrive_wd = onedrive_wd,
-  #                 data = 'species list') |>
-  #   dplyr::filter(!name %in% c('Oriental weatherfish',
-  #                              'Fathead minnow',
-  #                              'Pumpkinseed',
-  #                              'Common freshwater jellyfish',
-  #                              'Bluegill',
-  #                              'Mosquitofish',
-  #                              'Asiatic clam',
-  #                              'Golden clam',
-  #                              'Good luck clam',
-  #                              'Yellow pickerel'))
-
   names(pr_sp) = stringr::str_to_title(names(pr_sp))
-
-  # occ_dat_res_b = gather_ais_data(lan_root = lan_folder,
-  #                         onedrive_wd = onedrive_wd,
-  #                         data = 'occurrences',
-  #                         redo = T,
-  #                         excel_path = "app/www/Master Incidence Report Records.xlsx")
 
   write.csv(pr_sp, 'app/www/priority_species_table.csv', row.names = F)
 
@@ -203,14 +147,14 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   print("Written SF object of occurrence data records to app's www folder")
 
-  if(!publishing_results$error){
-    # Update bcinvadeR R package
-    if('bcinvadeR' %in% devtools::loaded_packages()$package){
-      devtools::unload('bcinvadeR')
-    }
-    devtools::install_github('chrispmad/bcinvadeR',
-                             upgrade = 'never')
-  }
+  # if(!publishing_results$error){
+  #   # Update bcinvadeR R package
+  #   if('bcinvadeR' %in% devtools::loaded_packages()$package){
+  #     devtools::unload('bcinvadeR')
+  #   }
+  #   devtools::install_github('chrispmad/bcinvadeR',
+  #                            upgrade = 'never')
+  # }
 
   if(!publishing_results$error){
     # Publish app to Shinyapps.io
@@ -218,7 +162,8 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       rsconnect::deployApp(
         appDir = 'app/',
         appTitle = 'BC_Invasives_Dashboard',
-        account = 'chrispmadsen'
+        account = 'chrispmadsen',
+        forceUpdate = T
       ),
       error = function(e) {
         publishing_results$error_at = 'publishing'
