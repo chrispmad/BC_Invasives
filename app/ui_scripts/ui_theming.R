@@ -18,6 +18,10 @@ bcinv_theme = bs_add_rules(
     display: hidden;
   }
 
+  .navbar-static-top {
+    background: lightblue;
+  }
+
   .rainbow-btn-container {
     width: 100%;
     height: 93%;
