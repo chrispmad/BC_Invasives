@@ -19,7 +19,6 @@ button_bar = card(
                        selected = c("FDIS","Old AIS Layer","Incidental Observations","iNaturalist"),
                        inline = T,
                        width = '100%'),
-    h5("Filters", style = 'margin-top:-0.5rem;margin-bottom:0rem;'),
     checkboxInput('retain_unconfirmed_reports','Include Unconfirmed Reports?',
                   value = F),
     h5("Downloads", style = 'margin-top:-0.5rem;text-align:center;margin-bottom:0rem;'),

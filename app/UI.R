@@ -12,12 +12,9 @@ library(kableExtra)
 
 source('www/mods/species_search_module.R')
 source('ui_scripts/ui_theming.R')
-# source('ui_scripts/ui_species_search_navpanel.R')
 source('ui_scripts/ui_ais_rangemap_navpanel.R')
 source('ui_scripts/ui_incident_dashboard_navpanel.R')
 source('ui_scripts/ui_regional_contacts_navpanel.R')
-# source('ui_scripts/ui_connected_wb_navpanel.R')
-# source('ui_scripts/ui_prioritization_navpanel.R')
 source('ui_scripts/ui_info_navpanel.R')
 source('ui_scripts/ui_coordinate_finder_navitem.R')
 
