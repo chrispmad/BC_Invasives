@@ -142,14 +142,14 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   print("Written SF object of occurrence data records to app's www folder")
 
-  # if(!publishing_results$error){
-  #   # Update bcinvadeR R package
-  #   if('bcinvadeR' %in% devtools::loaded_packages()$package){
-  #     devtools::unload('bcinvadeR')
-  #   }
-  #   devtools::install_github('chrispmad/bcinvadeR',
-  #                            upgrade = 'never')
-  # }
+  if(!publishing_results$error){
+    # Update bcinvadeR R package
+    if('bcinvadeR' %in% devtools::loaded_packages()$package){
+      devtools::unload('bcinvadeR')
+    }
+    devtools::install_github('chrispmad/bcinvadeR',
+                             upgrade = 'never')
+  }
 
   if(!publishing_results$error){
     # Publish app to Shinyapps.io
