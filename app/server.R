@@ -16,6 +16,8 @@ function(input, output, session) {
 
   source('server_scripts/establish_reactives.R', local = T)$value
 
+  source('server_scripts/make_custom_leaflet_icons.R', local = T)
+
   source('server_scripts/ais_rangemap_tab.R', local = T)$value
 
   source('server_scripts/make_wb_finder_map.R', local = T)$value

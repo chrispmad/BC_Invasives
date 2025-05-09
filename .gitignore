@@ -3,6 +3,14 @@
 .Rhistory
 .RData
 .Ruserdata
-app/www/*
+*.rds
+*.png
+*.xlsx
+*.gpkg
+*.dbf
+*.prj
+*.shp
+*.shx
+*.csv
 publishing_results/*
 app/rsconnect/*
