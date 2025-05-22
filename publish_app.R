@@ -6,7 +6,7 @@ invisible(library(tidyverse))
 # publish this app has failed; if so, don't attempt any of the stuff below,
 # as that will very likely fail again.
 
-lan_folder = "//SFP.IDIR.BCGOV/S140/S40203/RSD_ FISH & AQUATIC HABITAT BRANCH/General/"
+lan_folder = "//SFP.IDIR.BCGOV/S140/S40203/WFC AEB/General/"
 proj_wd = getwd()
 onedrive_wd = paste0(str_extract(getwd(),"C:/Users/[A-Z]+/"),"OneDrive - Government of BC/data/")
 
@@ -149,16 +149,16 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   # 1) Native Range
   ## Ecological Drainage Units
-  np_native_range = bcdc_query_geodata("eaubc-ecological-drainage-units") |>
-    filter(ECO_DRAINAGE_UNIT %in% c("Alsek","North Coastal","Lewes","Nakina",
+  np_native_range = bcdata::bcdc_query_geodata("eaubc-ecological-drainage-units") |>
+    bcdata::filter(ECO_DRAINAGE_UNIT %in% c("Alsek","North Coastal","Lewes","Nakina",
                                     "Teslin","Upper Stikine","Upper Liard","Taku",
                                     "Lower Liard","Lower Peace","Hay")) |>
-    collect() |>
+    bcdata::collect() |>
     sf::st_transform(4326)
 
-  walleye_native_range = bcdc_query_geodata("eaubc-ecological-drainage-units") |>
-    filter(ECO_DRAINAGE_UNIT %in% c("Upper Liard","Lower Liard","Hay","Lower Peace")) |>
-    collect() |>
+  walleye_native_range = bcdata::bcdc_query_geodata("eaubc-ecological-drainage-units") |>
+    bcdata::filter(ECO_DRAINAGE_UNIT %in% c("Upper Liard","Lower Liard","Hay","Lower Peace")) |>
+    bcdata::collect() |>
     sf::st_transform(4326)
 
   native_range_occs = dplyr::bind_rows(

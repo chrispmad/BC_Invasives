@@ -13,9 +13,9 @@ leaflet::leaflet() |>
     leaflet::addScaleBar('bottomright') |>
     leaflet::addMapPane(name = 'region_pane', zIndex = 300) |>
     leaflet::addMapPane(name = 'occ_pane', zIndex = 400) |>
-    leaflet::addMapPane(name = 'erad_pane', zIndex = 500) |>
-    leaflet::addMapPane(name = 'anec_pane', zIndex = 600) |>
-    leaflet::addMapPane(name = 'native_pane', zIndex = 700) |>
+    leaflet::addMapPane(name = 'erad_pane', zIndex = 475) |>
+    leaflet::addMapPane(name = 'anec_pane', zIndex = 550) |>
+    leaflet::addMapPane(name = 'native_pane', zIndex = 625) |>
     leaflet::addPolygons(
       data = regs,
       color = 'grey',
@@ -184,32 +184,45 @@ observe({
       dplyr::mutate(Date = lubridate::ymd(Date)) |>
       dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
                                                       end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
-
-    l = l |>
-      leaflet::addMarkers(
-        data = eradicated_to_plot,
-        icon = red_ex_icon,
-        label = ~paste0(Species,":",Date),
-        group = 'eradication_markers',
-        options = pathOptions(pane = "erad_pane")
-      ) |>
-      leaflet::addMarkers(
+    # browser()
+    if(nrow(eradicated_to_plot) > 0){
+      l = l |>
+        leaflet::addMarkers(
+          data = eradicated_to_plot,
+          icon = red_ex_icon,
+          label = ~paste0(Species,":",Date),
+          popup = lapply(leafpop::popupTable(sf::st_drop_geometry(eradicated_to_plot)),shiny::HTML),
+          group = 'eradication_markers',
+          options = pathOptions(pane = "erad_pane")
+        )
+    }
+    if(nrow(native_to_plot) > 0){
+      l = l |>
+        leaflet::addMarkers(
         data = native_to_plot,
         icon = native_range_square_icon,
         label = ~paste0(Species,":",Date),
+        popup = lapply(leafpop::popupTable(sf::st_drop_geometry(native_to_plot)),shiny::HTML),
         group = 'native_range_markers',
         options = pathOptions(pane = 'native_pane')
-      ) |>
-      leaflet::addMarkers(
+      )
+    }
+    if(nrow(anecdotal_to_plot) > 0){
+      l = l |>
+        leaflet::addMarkers(
         data = anecdotal_to_plot,
         icon = anecdotal_question_icon,
         label = ~paste0(Species,":",Date),
+        popup = lapply(leafpop::popupTable(sf::st_drop_geometry(anecdotal_to_plot)),shiny::HTML),
         group = 'anecdotal_markers',
         options = pathOptions(pane = 'anec_pane')
-      ) |>
-      addControl(position = "topright", html = legend_html, layerId = 'custom_legend')
+      )
+    }
 
-
+    if(nrow(eradicated_to_plot) > 0 | nrow(native_to_plot) > 0 | nrow(anecdotal_to_plot) > 0){
+      l = l |>
+        addControl(position = "topright", html = legend_html, layerId = 'custom_legend')
+    }
 
     # Drop any highlighted rows, if there are any.
     # We'll add these immediately below.
