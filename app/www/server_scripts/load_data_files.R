@@ -3,7 +3,10 @@ bc = sf::read_sf('bc_simple.shp')
 
 # Read in priority list of AIS species (excel file), use it to update selectInput
 pr_sp = vroom::vroom('priority_species_table.csv') |>
-  purrr::set_names(snakecase::to_snake_case)
+  purrr::set_names(snakecase::to_snake_case) |>
+  dplyr::mutate(name = ifelse(name == 'Oriental weather loach',
+                              'Oriental weatherfish',
+                              name))
 
 # Read in occurrence data for species (this is updated each time the 'publish_app.R'
 # script is run)
