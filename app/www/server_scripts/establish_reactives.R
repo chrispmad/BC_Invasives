@@ -6,17 +6,23 @@ occ_dat_sp = reactive({
     # Make sure we have EITHER a species name OR a region name to search with.
     # Make sure we have a species name to search with.
     req(!is.null(input$ais_rangemap_sp))
+
     # Make sure we have EITHER a species name OR a region name to search with.
-    req(input$ais_rangemap_sp != 'None' | input$ais_rangemap_reg != 'None')
+    req(!'None' %in% input$ais_rangemap_sp | input$ais_rangemap_reg != 'None')
 
     # We're looking for AIS by species name!
-    if(input$ais_rangemap_sp != 'None'){
+    if(!'None' %in% input$ais_rangemap_sp){
 
       species_for_search = input$ais_rangemap_sp
 
-      if(str_detect(input$ais_rangemap_sp, '^Asian [c,C]arp')){
-        species_for_search = c("Bighead Carp","Black Carp","Grass Carp","Silver Carp","Asian Carp")
+      carp_row_to_expand = str_detect(input$ais_rangemap_sp, '^Asian [c,C]arp')
+      if(sum(carp_row_to_expand) > 0){
+        # Drop input that was for Asian Carp.
+        species_for_search = species_for_search[-carp_row_to_expand]
+        # Add split-out options for Carp
+        species_for_search = c(species_for_search, c("Bighead Carp","Black Carp","Grass Carp","Silver Carp","Asian Carp"))
       }
+      species_for_search = stringr::str_to_sentence(species_for_search)
 
       dat = occ_dat |>
         dplyr::filter(Species %in% stringr::str_remove(species_for_search," \\(.*"))

@@ -36,7 +36,7 @@ output$search_ui_output = renderUI({
       shinyWidgets::pickerInput('ais_rangemap_sp',
                                 '',
                                 choices = c('None'),
-                                multiple = F,
+                                multiple = T,
                                 options = list(
                                   `live-search` = TRUE)),
       h5("Select Region", style = section_title_margin),
@@ -111,6 +111,7 @@ output$date_filter_of_inspection_records = renderUI({
   }
 
   occ_dat = occ_dat |>
+    dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
     dplyr::mutate(Date = lubridate::ymd(Date))
 
   min_date = min(occ_dat$Date, na.rm=T)
@@ -366,7 +367,7 @@ observeEvent(input$search_type_input, {
 # has been selected by name.
 observe({
   if(!is.null(input$ais_rangemap_sp)){
-    if(input$ais_rangemap_sp != 'None'){
+    if(!'None' %in% input$ais_rangemap_sp){
       shinyWidgets::updatePickerInput(session = session,
                                       inputId = 'ais_rangemap_reg',
                                       selected = 'None')
