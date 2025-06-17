@@ -67,6 +67,8 @@ occ_dat_sp_f = reactive({
   req(!is.null(input$date_filter_for_occ_dat))
 
   occ_dat_sp() |>
+    # Ensure the Date column has month and day; if not, add January 1st as default.
+    dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
     dplyr::mutate(Date = lubridate::ymd(Date)) |>
     # dplyr::mutate(min_date = min(Date,na.rm=T),
     #               max_date = max(Date,na.rm=T)) |>

@@ -168,18 +168,24 @@ observe({
 
     # Also add eradicated, native and anecdotal occurrences!
     eradicated_to_plot = eradicated_occs |>
+      # Ensure the Date column has month and day; if not, add January 1st as default.
+      dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
       dplyr::filter(Species %in% stringr::str_remove(input$ais_rangemap_sp," \\(.*")) |>
       dplyr::mutate(Date = lubridate::ymd(Date)) |>
       dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
                                                       end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
 
     native_to_plot = native_range_occs |>
+      # Ensure the Date column has month and day; if not, add January 1st as default.
+      dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
       dplyr::filter(Species %in% stringr::str_remove(input$ais_rangemap_sp," \\(.*")) |>
       dplyr::mutate(Date = lubridate::ymd(Date)) |>
       dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
                                                       end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
 
     anecdotal_to_plot = anecdotal_occs |>
+      # Ensure the Date column has month and day; if not, add January 1st as default.
+      dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
       dplyr::filter(Species %in% stringr::str_remove(input$ais_rangemap_sp," \\(.*")) |>
       dplyr::mutate(Date = lubridate::ymd(Date)) |>
       dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
