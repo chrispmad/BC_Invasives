@@ -173,6 +173,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   print(paste0("Looking for native ranges of Northern Pike and Walleye, we found ",nrow(native_range_occs)," rows that describe native occurences."))
   print(paste0("Before removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
+
   # Drop records that are now in native range
   occ_dat_res_b = occ_dat_res_b |>
     dplyr::anti_join(native_range_occs |>
@@ -205,6 +206,14 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     dplyr::anti_join(anecdotal_occs |>
                        sf::st_drop_geometry())
   print(paste0("After removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
+
+  occ_dat_res_b = occ_dat_res_b |>
+    dplyr::arrange(Species)
+
+  file.remove("app/www/native_range_occs.gpkg")
+  file.remove("app/www/eradicated_occs.gpkg")
+  file.remove("app/www/anecdotal_occs.gpkg")
+  file.remove("app/www/occ_dat.gpkg")
 
   sf::write_sf(native_range_occs,"app/www/native_range_occs.gpkg")
   sf::write_sf(eradicated_occs,"app/www/eradicated_occs.gpkg")
