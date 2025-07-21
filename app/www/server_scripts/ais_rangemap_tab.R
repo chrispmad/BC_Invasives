@@ -340,7 +340,8 @@ observeEvent(input$search_for_all_sp_in_wb, {
 shinyWidgets::updatePickerInput(session = session,
                                 inputId = 'ais_rangemap_sp',
                                 choices = pr_sp$label,
-                                selected = pr_sp$label[1])
+                                selected = pr_sp$label[1]
+                                )
 
 # Inform choices for natural resource selector
 shinyWidgets::updatePickerInput(session = session,
@@ -355,7 +356,9 @@ observeEvent(input$search_type_input, {
     shinyWidgets::updatePickerInput(session = session,
                                     inputId = 'ais_rangemap_sp',
                                     choices = pr_sp$label,
-                                    selected = pr_sp$label[1])
+                                    # selected = pr_sp$label[1]
+                                    selected = 'None'
+                                    )
     shinyWidgets::updatePickerInput(session = session,
                                     inputId = 'ais_rangemap_reg',
                                     choices = c('None',nr_regs$reg_name),
