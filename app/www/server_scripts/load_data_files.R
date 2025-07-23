@@ -21,4 +21,8 @@ nr_regs = sf::read_sf('nr_regions.gpkg') |>
   dplyr::select(reg_name)
 
 # Lake name and region coordinate lookup table.
-lk_crd_tbl = readRDS("lake_name_coordinate_lookup_tbl.rds")
+lk_crd_tbl = readRDS("lake_name_coordinate_lookup_tbl.rds") |>
+  # Add row numbers. This helps us when there are multiple rows with the
+  # same lake name in the same region (a rare case!)
+  dplyr::mutate(row_id = dplyr::row_number()) |>
+  dplyr::mutate(codename = paste0(wb_name,"_",row_id))

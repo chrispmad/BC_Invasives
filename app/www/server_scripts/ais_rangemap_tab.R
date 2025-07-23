@@ -322,16 +322,24 @@ observeEvent(input$search_for_all_sp_in_wb, {
       )
 
       if(nrow(all_species_results) == 1){
-        if(all_species_results == data.frame(result = "No records found for target waterbody")){
-          all_sp_in_wbs(data.frame(results = 'No search run yet.'))
+        if(ncol(all_species_results) == 1){
+          if(all_species_results == data.frame(result = "No records found for target waterbody")){
+            all_sp_in_wbs(data.frame(results = 'No search run yet.'))
+          } else {
+            # Single row of results - assign to reactiveVal.
+            all_sp_in_wbs(all_species_results)
+            print(all_sp_in_wbs())
+          }
         }
       } else {
-        # Filter these results for species in our list of target AIS species.
-        target_species_results = all_species_results |>
-          dplyr::mutate(Species = stringr::str_to_sentence(Species)) |>
-          dplyr::filter(Species %in% stringr::str_to_sentence(pr_sp$name))
-
-        all_sp_in_wbs(target_species_results)
+        # # Filter these results for species in our list of target AIS species.
+        # target_species_results = all_species_results |>
+        #   dplyr::mutate(Species = stringr::str_to_sentence(Species)) |>
+        #   dplyr::filter(Species %in% stringr::str_to_sentence(pr_sp$name))
+        # all_sp_in_wbs(target_species_results)
+        # Multiple rows of results - assign to reactiveVal.
+        all_sp_in_wbs(all_species_results)
+        print(all_sp_in_wbs())
       }
     })
 })
@@ -399,9 +407,11 @@ observe({
 # }
 observe({
   if(!input$search_type_input){
+    choices = lk_crd_tbl$codename
+    names(choices) = lk_crd_tbl$wb_name
     shinyWidgets::updatePickerInput(
       inputId = "all_sp_in_wb_wb_name",
-      choices = c("None",paste0(lk_crd_tbl$wb_name)),
+      choices = c("None",choices),
       selected = "None"
     )
   }
@@ -413,12 +423,13 @@ selected_wb_from_tbl = reactiveVal("None")
 observe({
   if(!input$search_type_input){
     if(!is.null(input$all_sp_in_wb_wb_name)){
+
       if(input$all_sp_in_wb_wb_name != "None"){
 
         if(input$all_sp_in_wb_wb_name != selected_wb_from_tbl()){
           # Check that the clicked coordinates field would change based on this wb selection.
           # If not, then don't make Shiny do this multiple times
-          wb_for_coords = lk_crd_tbl[lk_crd_tbl$wb_name == input$all_sp_in_wb_wb_name,]
+          wb_for_coords = lk_crd_tbl[lk_crd_tbl$codename == input$all_sp_in_wb_wb_name,]
           selected_wb_from_tbl(wb_for_coords$wb_name)
           update_coords = F
           if(is.null(clicked_lng())) update_coords = TRUE

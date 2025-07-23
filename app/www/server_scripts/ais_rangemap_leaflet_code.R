@@ -61,6 +61,23 @@ observe({
                    lat = clicked_lat(),
                    zoom = 8)
   }
+  if(!is.null(input$all_sp_in_wb_wb_name)){
+    if(input$all_sp_in_wb_wb_name != "None"){
+      # Wait until we find the centroid coordinates...
+      req(input$all_sp_in_wb_lat != "")
+
+      wb_poly = get_waterbody_polygon(focus_wb_name = stringr::str_remove(input$all_sp_in_wb_wb_name,"_.*$"),
+                                      focus_wb_coordinates = c(input$all_sp_in_wb_lng,input$all_sp_in_wb_lat)) |>
+        sf::st_transform(4326)
+
+      leaflet::leafletProxy('ais_rangemap_leaf') |>
+        leaflet::clearGroup("selected_wb") |>
+        leaflet::addPolygons(
+          data = wb_poly,
+          group = 'selected_wb'
+        )
+    }
+  }
 })
 
 observe({
@@ -134,7 +151,7 @@ observe({
           dplyr::mutate(marker_colour = Species)
       }
     }
-    if(!is.null(all_sp_in_wbs())){
+    if(!is.null(input$all_sp_in_wb_wb_name)){
       if(!'results' %in% names(all_sp_in_wbs())){
         # if(is.null(occ_dat_sp()) & !'results' %in% names(all_sp_in_wbs())){
         # The user searched by waterbody.
@@ -144,6 +161,18 @@ observe({
       }
     }
 
+    # Is this an 'all-species-by-waterbody' search? If so, add
+    # a polygon for the waterbody!
+    # if(!'results' %in% names(all_sp_in_wbs())){
+    #   l = l |>
+    #     addPolygons(
+    #       data = wb_poly,
+    #       color = 'purple',
+    #       weight = 1.5,
+    #       fillColor = 'transparent',
+    #       group = "selected_wb"
+    #     )
+    # }
     l = l |>
       leaflet::addCircleMarkers(
         data = dat_for_plot,
