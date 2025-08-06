@@ -360,12 +360,13 @@ observeEvent(input$search_for_all_sp_in_wb, {
 })
 
 # Update species selector
+observe({
 shinyWidgets::updatePickerInput(session = session,
                                 inputId = 'ais_rangemap_sp',
                                 choices = pr_sp_conf_filt()$label,
                                 selected = pr_sp_conf_filt()$label[1]
                                 )
-
+})
 # Inform choices for natural resource selector
 shinyWidgets::updatePickerInput(session = session,
                                 inputId = 'ais_rangemap_reg',

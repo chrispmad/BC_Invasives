@@ -1,5 +1,5 @@
 # Read in provincial shapefile.
-bc = sf::read_sf('bc_simple.shp')
+bc = bcmaps::bc_bound()
 
 # Read in priority list of AIS species (excel file), use it to update selectInput
 pr_sp = vroom::vroom('priority_species_table.csv') |>
