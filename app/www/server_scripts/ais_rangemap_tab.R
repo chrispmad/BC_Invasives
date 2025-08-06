@@ -4,24 +4,39 @@
 
 section_title_margin = 'margin-bottom:-1.5rem;'
 # Calculate number of rows of data per species; add as label to species selector.
-pr_sp = pr_sp |>
-  left_join(
-    occ_dat |>
-      sf::st_drop_geometry() |>
-      dplyr::count(Species) |>
-      dplyr::rename(name = Species)
-  ) |>
-  mutate(n = replace_na(n, 0)) |>
-  dplyr::mutate(label = paste0(name,' (',n,' records)'))
 
-# Add groups of species, like Asian Carp
-Asian_carp_n = sum(pr_sp[pr_sp$name %in% c("Bighead carp","Black carp","Grass carp","Silver carp"),]$n)
+occ_dat_conf_filt = reactive({
+  if(input$retain_unconfirmed_reports){
+    output = occ_dat
+  } else {
+    output = occ_dat |>
+      dplyr::filter(ID_Confirmation != "Unconfirmed")
+  }
+  output
+})
 
-pr_sp = pr_sp |>
-  dplyr::add_row(group = 'Fish', status = 'Prevent', name = 'Asian carp',
-                 genus = 'Family: Cyprinidae', species = 'sp.', n = Asian_carp_n,
-                 label = paste0('Asian carp (',Asian_carp_n,' records)')) |>
-  dplyr::arrange(name)
+pr_sp_conf_filt = reactive({
+  pr_sp = pr_sp |>
+    left_join(
+      occ_dat_conf_filt() |>
+        sf::st_drop_geometry() |>
+        dplyr::count(Species) |>
+        dplyr::rename(name = Species)
+    ) |>
+    mutate(n = replace_na(n, 0)) |>
+    dplyr::mutate(label = paste0(name,' (',n,' records)'))
+
+  # Add groups of species, like Asian Carp
+  Asian_carp_n = sum(pr_sp[pr_sp$name %in% c("Bighead carp","Black carp","Grass carp","Silver carp"),]$n)
+
+  pr_sp = pr_sp |>
+    dplyr::add_row(group = 'Fish', status = 'Prevent', name = 'Asian carp',
+                   genus = 'Family: Cyprinidae', species = 'sp.', n = Asian_carp_n,
+                   label = paste0('Asian carp (',Asian_carp_n,' records)')) |>
+    dplyr::arrange(name)
+
+  pr_sp
+})
 
 # =======================
 #  Render UI for AIS Rangemap
@@ -347,8 +362,8 @@ observeEvent(input$search_for_all_sp_in_wb, {
 # Update species selector
 shinyWidgets::updatePickerInput(session = session,
                                 inputId = 'ais_rangemap_sp',
-                                choices = pr_sp$label,
-                                selected = pr_sp$label[1]
+                                choices = pr_sp_conf_filt()$label,
+                                selected = pr_sp_conf_filt()$label[1]
                                 )
 
 # Inform choices for natural resource selector
@@ -363,7 +378,7 @@ observeEvent(input$search_type_input, {
   if(input$search_type_input){
     shinyWidgets::updatePickerInput(session = session,
                                     inputId = 'ais_rangemap_sp',
-                                    choices = pr_sp$label,
+                                    choices = pr_sp_conf_filt()$label,
                                     # selected = pr_sp$label[1]
                                     selected = 'None'
                                     )
