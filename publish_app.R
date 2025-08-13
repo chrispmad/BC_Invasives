@@ -8,7 +8,7 @@ invisible(library(tidyverse))
 
 lan_folder = "//SFP.IDIR.BCGOV/S140/S40203/WFC AEB/General/"
 proj_wd = getwd()
-onedrive_wd = paste0(str_extract(getwd(),"C:/Users/[A-Z]+/"),"OneDrive - Government of BC/data/")
+onedrive_wd = "//SFP.IDIR.BCGOV/S140/S40203/WFC AEB/General/2 SCIENCE - Invasives/AIS_R_Projects/LargeDataFiles/"
 
 setwd(here::here())
 

@@ -9,7 +9,7 @@ my_query = bcdata:::CQL("ORDER BY OBSERVATION_DATE")
 
 lan_root = "//SFP.IDIR.BCGOV/S140/S40203/WFC AEB/General/"
 proj_wd = getwd()
-onedrive_wd = paste0(str_extract(getwd(),"C:/Users/[A-Z]+/"),"OneDrive - Government of BC/data/")
+onedrive_wd = "//SFP.IDIR.BCGOV/S140/S40203/WFC AEB/General/2 SCIENCE - Invasives/AIS_R_Projects/LargeDataFiles/"
 pr_sp = gather_ais_data(data = 'species list', lan_root = lan_root, onedrive_wd = onedrive_wd)
 
 spi_fish |>
