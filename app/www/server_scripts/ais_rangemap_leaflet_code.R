@@ -32,6 +32,8 @@ leaflet::leaflet() |>
 })
 
 
+
+#generating the palette for the plots
 occ_dat_pal = reactive({
   req(!is.null(occ_dat_sp()) | !'results' %in% names(all_sp_in_wbs()))
   if(!is.null(occ_dat_sp()) | !'results' %in% names(all_sp_in_wbs())){
