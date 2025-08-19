@@ -97,7 +97,11 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
                              skip = 20)
 
   names(pr_sp) <- c("group","status","name","genus","species")
-
+  
+  bullhead_entry<-c("Fish", "Management", "Bullhead sp", "Ameiurus", "sp")
+  
+  pr_sp<-rbind(pr_sp, bullhead_entry)
+  
   # Just for our species of interest.
   pr_sp = pr_sp |>
     dplyr::filter(group == 'Fish' | name %in% c("Whirling disease") | stringr::str_detect(name, '(mussel|crayfish|mystery snail|mudsnail|clam|jellyfish|shrimp|waterflea)'))
@@ -105,7 +109,6 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   # Split out grouped species names into separate rows.
   pr_sp = pr_sp |>
     dplyr::mutate(name = stringr::str_squish(name)) |>
-    dplyr::filter(name != 'Bullhead') |>
     dplyr::arrange(name)
 
   # Replace some species names.
@@ -207,9 +210,18 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
                        sf::st_drop_geometry())
   print(paste0("After removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
 
-  occ_dat_res_b = occ_dat_res_b |>
-    dplyr::arrange(Species)
-
+  # for Bullheads, we are going to merge them all - so that Yellow, Brown, Black, And Bullead are shown.
+  bullhead_rows <- occ_dat_res_b |> 
+    filter(str_detect(Species, regex("Bullhead", ignore_case = TRUE)))
+  bullhead_group <- bullhead_rows |> 
+    mutate(Species = "Bullhead sp")            
+  occ_dat_res_b <- bind_rows(occ_dat_res_b, bullhead_group) |> 
+    arrange(Species)
+  
+  
+  
+  ######
+  
   file.remove("app/www/native_range_occs.gpkg")
   file.remove("app/www/eradicated_occs.gpkg")
   file.remove("app/www/anecdotal_occs.gpkg")
@@ -236,8 +248,8 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     tryCatch(
       rsconnect::deployApp(
         appDir = 'app/',
-        appTitle = 'BC_Invasives_Dashboard',
-        account = 'chrispmadsen',
+        appTitle = 'BC_Invasives',
+        account = 'jpphelan',
         forceUpdate = T
       ),
       error = function(e) {
