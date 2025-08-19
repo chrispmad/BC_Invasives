@@ -14,7 +14,8 @@ occ_dat_sp = reactive({
     if(!'None' %in% input$ais_rangemap_sp){
 
       species_for_search = input$ais_rangemap_sp
-
+        
+      
       carp_row_to_expand = str_detect(input$ais_rangemap_sp, '^Asian [c,C]arp')
       if(sum(carp_row_to_expand) > 0){
         # Drop input that was for Asian Carp.
