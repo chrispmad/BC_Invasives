@@ -2,9 +2,9 @@
 my_colours = glasbey.colors(length(unique(occ_dat$Species)))
 
 output$ais_rangemap_leaf = renderLeaflet({
-  
-  
-  
+
+
+
   regs = sf::read_sf("nr_regions.gpkg")
   bc_bound = sf::read_sf("bc_bound.gpkg")
 
@@ -78,6 +78,7 @@ observe({
         leaflet::clearGroup("selected_wb") |>
         leaflet::addPolygons(
           data = wb_poly,
+          label = ~WATERBODY_KEY_GROUP_CODE_50K,
           group = 'selected_wb'
         )
     }
@@ -130,7 +131,7 @@ observe({
       req('geom' %in% names(plot_dat()) | 'geometry' %in% names(plot_dat()))
       # req(stringr::str_extract(input$ais_rangemap_sp,".*(?= \\()") == unique(plot_dat()$Species))
     }
-    
+
     selected_species <- stringr::str_remove_all(input$ais_rangemap_sp, " \\(.*")
 
     l = leaflet::leafletProxy('ais_rangemap_leaf') |>
@@ -141,7 +142,7 @@ observe({
       leaflet::clearGroup(group = 'anecdotal_markers') |>
       leaflet::removeControl('selected_species_legend') |>
       leaflet::removeControl('custom_legend')
-    
+
     dat <- plot_dat() |>
       dplyr::filter(Species %in% selected_species) |>
       dplyr::mutate(rows_to_keep = TRUE)
@@ -222,7 +223,7 @@ observe({
         layerId = 'selected_species_legend',
         title = 'Record'
       )
-    
+
     ## Date filtered will not work now - lets move the date to check if the filter has been
     ## applied, then filter by date if it is not 0
     # Also add eradicated, native and anecdotal occurrences!
@@ -249,24 +250,24 @@ observe({
       dplyr::mutate(Date = lubridate::ymd(Date)) #|>
       # dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
       #                                                 end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
-    
-    
+
+
     # have the date filters been applied?
     if(!is.null(selected_dates())){
       # yes, then filter the eradicated, native and anecdotals to those dates
-      eradicated_to_plot = eradicated_to_plot |> 
+      eradicated_to_plot = eradicated_to_plot |>
         dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
                                                         end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
-      native_to_plot = native_to_plot |> 
+      native_to_plot = native_to_plot |>
         dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
                                                         end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
-      anecdotal_to_plot = anecdotal_to_plot |> 
+      anecdotal_to_plot = anecdotal_to_plot |>
         dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
                                                         end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
     }
-    
-    
-    
+
+
+
     if (nrow(eradicated_to_plot) > 0 && any(eradicated_to_plot$Species == selected_species)) {
       l <- l |>
         leaflet::addMarkers(
@@ -278,7 +279,7 @@ observe({
           options = pathOptions(pane = "erad_pane")
         )
     }
-    
+
     if (nrow(native_to_plot) > 0 && any(native_to_plot$Species == selected_species)) {
       l <- l |>
         leaflet::addMarkers(
@@ -290,7 +291,7 @@ observe({
           options = pathOptions(pane = "native_pane")
         )
     }
-    
+
     if (nrow(anecdotal_to_plot) > 0 && any(anecdotal_to_plot$Species == selected_species)) {
       l <- l |>
         leaflet::addMarkers(
@@ -314,12 +315,12 @@ observe({
     l = l |>
       clearGroup('highlighted_rows')
 
-    
+
     # this is the issue with plotting the northern pike and walleye - not sure why for these
     # species here, and not others
     # If there is any selected row or rows from the DT, highlight those circles.
     rows <- tryCatch(ais_selected_rows(), error = function(e) NULL)
-    
+
     if (is.numeric(rows) && length(rows) > 0 && all(!is.na(rows)) && all(rows <= nrow(dat))) {
 
       dat = plot_dat() |>
