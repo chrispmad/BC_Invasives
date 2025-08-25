@@ -97,12 +97,12 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
                              skip = 20)
 
   names(pr_sp) <- c("group","status","name","genus","species")
-  
+
   # is iNat doing something else?
   bullhead_entry<-c("Fish", "Management", "Bullhead sp", "Ameiurus", "sp")
-  
+
   pr_sp<-rbind(pr_sp, bullhead_entry)
-  
+
   # Just for our species of interest.
   pr_sp = pr_sp |>
     dplyr::filter(group == 'Fish' | name %in% c("Whirling disease") | stringr::str_detect(name, '(mussel|crayfish|mystery snail|mudsnail|clam|jellyfish|shrimp|waterflea)'))
@@ -187,8 +187,8 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   # 2) Eradicated
   eradicated_occs = occ_dat_res_b |>
     # Only one eradicated record currently, for Northern Pike!
-    dplyr::filter((Date == '2009' & Location == 'Haha Lake') |
-                    (Date == '2006' & Location == 'Haha Lake'))
+    dplyr::filter((Date == '2009' & Location == 'Haha Lake' & Species == "Northern pike") |
+                    (Date == '2006' & Location == 'Haha Lake' & Species == "Northern pike"))
 
   print(paste0("Looking for records that have been flagged as eradicated, we found ",nrow(eradicated_occs)," rows."))
   print(paste0("Before removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
@@ -200,8 +200,8 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   # 3) Anecdotal
   anecdotal_occs = occ_dat_res_b |>
-    dplyr::filter((Location == 'SUMMIT LAKE') |
-                    (Date == '2001-01-01' & Location == "AID LAKE"))
+    dplyr::filter((Location == 'SUMMIT LAKE' & Species == "Northern pike") |
+                    (Date == '2001-01-01' & Location == "AID LAKE" & Species == "Northern pike"))
 
   print(paste0("Looking for records that have been flagged as eradicated, we found ",nrow(eradicated_occs)," rows."))
   print(paste0("Before removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
@@ -212,39 +212,39 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   print(paste0("After removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
 
   # for Bullheads, we are going to merge them all - so that Yellow, Brown, Black, And Bullead are shown.
-  bullhead_rows <- occ_dat_res_b |> 
+  bullhead_rows <- occ_dat_res_b |>
     filter(str_detect(Species, regex("Bullhead", ignore_case = TRUE)))
-  
-  bullhead_group <- bullhead_rows |> 
-    mutate(`Confirmed common name` = Species) |> 
-    mutate(Species = "Bullhead sp")            
-  
-  
-  
-  
-  occ_dat_res_b <- occ_dat_res_b |> 
+
+  bullhead_group <- bullhead_rows |>
+    mutate(`Confirmed common name` = Species) |>
+    mutate(Species = "Bullhead sp")
+
+
+
+
+  occ_dat_res_b <- occ_dat_res_b |>
     mutate(`Confirmed common name` = Species)
-  
-  occ_dat_res_b <- bind_rows(occ_dat_res_b, bullhead_group) |> 
+
+  occ_dat_res_b <- bind_rows(occ_dat_res_b, bullhead_group) |>
     arrange(Species)
-  
-  
-  
+
+
+
   ### Must be finished
-  # bass_rows<-occ_dat_res_b |> 
-  #   filter(str_detect(Species, regex("Bass", ignore_case = TRUE))) |> 
-  #   filter(str_detect(Species, regex("Bass (small or large-mouth)", ignore_case = TRUE))) |> 
-  #   filter(str_detect(Species, regex("Smallmouth bass", ignore_case = TRUE))) |> 
+  # bass_rows<-occ_dat_res_b |>
+  #   filter(str_detect(Species, regex("Bass", ignore_case = TRUE))) |>
+  #   filter(str_detect(Species, regex("Bass (small or large-mouth)", ignore_case = TRUE))) |>
+  #   filter(str_detect(Species, regex("Smallmouth bass", ignore_case = TRUE))) |>
   #   filter(str_detect(Species, regex("Largemouth bass", ignore_case = TRUE)))
-  # 
-  # 
-  # bullhead_group <- bullhead_rows |> 
-  #   mutate(Species = "Bullhead sp")     
-  # 
-  
-  
+  #
+  #
+  # bullhead_group <- bullhead_rows |>
+  #   mutate(Species = "Bullhead sp")
+  #
+
+
   ######
-  
+
   file.remove("app/www/native_range_occs.gpkg")
   file.remove("app/www/eradicated_occs.gpkg")
   file.remove("app/www/anecdotal_occs.gpkg")
