@@ -98,6 +98,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   names(pr_sp) <- c("group","status","name","genus","species")
   
+  # is iNat doing something else?
   bullhead_entry<-c("Fish", "Management", "Bullhead sp", "Ameiurus", "sp")
   
   pr_sp<-rbind(pr_sp, bullhead_entry)
@@ -213,11 +214,33 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   # for Bullheads, we are going to merge them all - so that Yellow, Brown, Black, And Bullead are shown.
   bullhead_rows <- occ_dat_res_b |> 
     filter(str_detect(Species, regex("Bullhead", ignore_case = TRUE)))
+  
   bullhead_group <- bullhead_rows |> 
+    mutate(`Confirmed common name` = Species) |> 
     mutate(Species = "Bullhead sp")            
+  
+  
+  
+  
+  occ_dat_res_b <- occ_dat_res_b |> 
+    mutate(`Confirmed common name` = Species)
+  
   occ_dat_res_b <- bind_rows(occ_dat_res_b, bullhead_group) |> 
     arrange(Species)
   
+  
+  
+  ### Must be finished
+  # bass_rows<-occ_dat_res_b |> 
+  #   filter(str_detect(Species, regex("Bass", ignore_case = TRUE))) |> 
+  #   filter(str_detect(Species, regex("Bass (small or large-mouth)", ignore_case = TRUE))) |> 
+  #   filter(str_detect(Species, regex("Smallmouth bass", ignore_case = TRUE))) |> 
+  #   filter(str_detect(Species, regex("Largemouth bass", ignore_case = TRUE)))
+  # 
+  # 
+  # bullhead_group <- bullhead_rows |> 
+  #   mutate(Species = "Bullhead sp")     
+  # 
   
   
   ######

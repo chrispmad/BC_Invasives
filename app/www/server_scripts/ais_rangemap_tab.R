@@ -62,6 +62,7 @@ output$search_ui_output = renderUI({
                                 options = list(
                                   `live-search` = TRUE
                                 )),
+      actionButton('reset_species_selection', "Clear selection!"),
       h5("Rangemap Buffer"),
       bslib::layout_column_wrap(
         1/2,
@@ -93,6 +94,7 @@ output$search_ui_output = renderUI({
       ),
       actionButton('reset_buffer_raster',"Reset Buffer / Raster")
     )
+    
   } else {
     tagList(
       h5("Search Waterbody for all species", style = 'margin-bottom:-2rem;text-align:center;'),
@@ -555,3 +557,27 @@ observeEvent(input$reset_buffer_raster, {
   occ_dat_buffer(NULL)
   occ_dat_raster(NULL)
 })
+
+observeEvent(input$reset_species_selection,{
+  shinyWidgets::updatePickerInput(
+    session = session,
+    inputId = "ais_rangemap_sp",
+    selected = character(0)   # clears selection
+  )
+  
+  shinyWidgets::updatePickerInput(
+    session = session,
+    inputId = "ais_rangemap_reg",
+    selected = character(0)   # clears selection
+  )
+  
+  
+  
+  shinyWidgets::updatePickerInput(
+    session = session,
+    inputId = "all_sp_in_wb_wb_name",
+    selected = character(0)   # clears selection
+  )
+})
+
+

@@ -21,6 +21,7 @@ button_bar = card(
                        width = '100%'),
     checkboxInput('retain_unconfirmed_reports','Include Unconfirmed Reports?',
                   value = F),
+    
     h5("Downloads", style = 'margin-top:-0.5rem;text-align:center;margin-bottom:0rem;'),
     p("Occurrence Data",style = 'margin-bottom:-0.5rem;'),
     layout_column_wrap(
