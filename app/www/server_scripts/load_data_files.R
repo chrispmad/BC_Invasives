@@ -12,8 +12,6 @@ pr_sp = vroom::vroom('priority_species_table.csv') |>
 # script is run)
 occ_dat = sf::read_sf('occ_dat.gpkg')
 
-
-
 native_range_occs = sf::read_sf("native_range_occs.gpkg")
 eradicated_occs = sf::read_sf("eradicated_occs.gpkg")
 anecdotal_occs = sf::read_sf("anecdotal_occs.gpkg")
