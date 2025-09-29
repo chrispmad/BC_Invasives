@@ -62,6 +62,7 @@ output$search_ui_output = renderUI({
                                 options = list(
                                   `live-search` = TRUE
                                 )),
+      actionButton('reset_species_selection', "Clear selection!"),
       h5("Rangemap Buffer"),
       bslib::layout_column_wrap(
         1/2,
@@ -550,8 +551,44 @@ observeEvent(input$make_ais_heatmap_raster, {
   occ_dat_raster(filled_rast)
 })
 
+
+
 # Button that resets buffer and raster to be blank.
 observeEvent(input$reset_buffer_raster, {
   occ_dat_buffer(NULL)
   occ_dat_raster(NULL)
+})
+
+
+observeEvent(input$reset_species_selection,{
+  shinyWidgets::updatePickerInput(
+    session = session,
+    inputId = "ais_rangemap_sp",
+    selected = character(0)   # clears selection
+  )
+  
+  shinyWidgets::updatePickerInput(
+    session = session,
+    inputId = "ais_rangemap_reg",
+    selected = character(0)   # clears selection
+  )
+  
+  
+  
+  shinyWidgets::updatePickerInput(
+    session = session,
+    inputId = "all_sp_in_wb_wb_name",
+    selected = character(0)   # clears selection
+  )
+  
+  # Clear leaflet layers when reset
+  leafletProxy("ais_rangemap_leaf") |> 
+    clearGroup("selected_species_circles") |> 
+    clearGroup("eradication_markers") |> 
+    clearGroup("native_range_markers") |> 
+    clearGroup("anecdotal_markers") |> 
+    clearGroup("selected_species_buffer") |> 
+    clearGroup("selected_species_raster") 
+    
+    
 })
