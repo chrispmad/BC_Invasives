@@ -2,9 +2,6 @@
 my_colours = glasbey.colors(length(unique(occ_dat$Species)))
 
 output$ais_rangemap_leaf = renderLeaflet({
-  
-  
-  
   regs = sf::read_sf("nr_regions.gpkg")
   bc_bound = sf::read_sf("bc_bound.gpkg")
   
@@ -33,10 +30,11 @@ output$ais_rangemap_leaf = renderLeaflet({
 
 
 occ_dat_pal = reactive({
-  req(!is.null(occ_dat_sp()) | !'results' %in% names(all_sp_in_wbs()))
-  if(!is.null(occ_dat_sp()) | !'results' %in% names(all_sp_in_wbs())){
-    if(!is.null(occ_dat_sp())){
-      if(input$ais_rangemap_reg == 'None'){
+  req(!is.null(occ_dat_sp()) || !any(names(all_sp_in_wbs()) == "results"))
+  
+  if (!is.null(occ_dat_sp()) || !any(names(all_sp_in_wbs()) == "results")) {
+    if (!is.null(occ_dat_sp())) {
+      if (input$ais_rangemap_reg == 'None') {
         # Drop-down species selector used.
         leaflet::colorFactor(palette = 'Spectral',
                              domain = c("SPI","Old AIS Layer","Incidental Observations","iNaturalist"))
@@ -57,19 +55,21 @@ occ_dat_pal = reactive({
 # Fly in to coordinates when coordinates have been selected #
 observe({
   print(clicked_lng())
-  if(!is.null(clicked_lng())){
+  if (!is.null(clicked_lng())) {
     leaflet::leafletProxy('ais_rangemap_leaf') |>
       leaflet::flyTo(lng = clicked_lng(),
                      lat = clicked_lat(),
                      zoom = 8)
   }
-  if(!is.null(input$all_sp_in_wb_wb_name)){
-    if(input$all_sp_in_wb_wb_name != "None"){
+  if (!is.null(input$all_sp_in_wb_wb_name)) {
+    if (input$all_sp_in_wb_wb_name != "None") {
       # Wait until we find the centroid coordinates...
       req(input$all_sp_in_wb_lat != "")
       
-      wb_poly = get_waterbody_polygon(focus_wb_name = stringr::str_remove(input$all_sp_in_wb_wb_name,"_.*$"),
-                                      focus_wb_coordinates = c(input$all_sp_in_wb_lng,input$all_sp_in_wb_lat)) |>
+      wb_poly = get_waterbody_polygon(
+        focus_wb_name = stringr::str_remove(input$all_sp_in_wb_wb_name,"_.*$"),
+        focus_wb_coordinates = c(input$all_sp_in_wb_lng,input$all_sp_in_wb_lat)
+      ) |>
         sf::st_transform(4326)
       
       leaflet::leafletProxy('ais_rangemap_leaf') |>
@@ -85,7 +85,7 @@ observe({
 
 observe({
   # If we have just switched to waterbody search mode, wipe map.
-  if(is.null(occ_dat_sp()) & 'results' %in% names(all_sp_in_wbs())){
+  if (is.null(occ_dat_sp()) && any(names(all_sp_in_wbs()) == "results")) {
     l = leaflet::leafletProxy('ais_rangemap_leaf') |>
       leaflet::clearGroup(group = 'selected_species_circles') |>
       leaflet::clearGroup(group = 'selected_species_buffer') |>
@@ -93,7 +93,7 @@ observe({
     
     return(l)
   }
-  req(!is.null(occ_dat_sp()) | !'results' %in% names(all_sp_in_wbs()))
+  req(!is.null(occ_dat_sp()) || !any(names(all_sp_in_wbs()) == "results"))
   
   # Once a species is selected, add to map
   l = leaflet::leafletProxy('ais_rangemap_leaf') |>
@@ -106,16 +106,22 @@ observe({
     leaflet::removeControl('custom_legend')
   
   req(!is.null(plot_dat()))
-  if(nrow(plot_dat()) > 0 | !'results' %in% names(all_sp_in_wbs())){
+  if (nrow(plot_dat()) > 0 || !any(names(all_sp_in_wbs()) == "results")) {
     
-    if('results' %in% names(all_sp_in_wbs())){
-      req('geom' %in% names(plot_dat()) | 'geometry' %in% names(plot_dat()))
+    if (any(names(all_sp_in_wbs()) == "results")) {
+      req('geom' %in% names(plot_dat()) || 'geometry' %in% names(plot_dat()))
     }
     
     ## FIX: safely handle selected_species
     selected_species <- NULL
-    if (!is.null(input$ais_rangemap_sp) && nzchar(input$ais_rangemap_sp)) {
-      selected_species <- stringr::str_remove_all(input$ais_rangemap_sp, " \\(.*")
+    
+    # Only set selected_species if a species is actually selected
+    if (!is.null(input$ais_rangemap_sp) && length(input$ais_rangemap_sp) > 0) {
+      # Convert to TRUE/FALSE for isTRUE() logic
+      has_selection <- length(input$ais_rangemap_sp) > 0
+      if (isTRUE(has_selection)) {
+        selected_species <- stringr::str_remove_all(input$ais_rangemap_sp, " \\(.*")
+      }
     }
     
     l = leaflet::leafletProxy('ais_rangemap_leaf') |>
@@ -137,14 +143,14 @@ observe({
     }
     
     # Check to see if the user wants to filter datatable records by the map bounds.
-    if(input$map_pane_filter_sel){
+    if (input$map_pane_filter_sel) {
       dat = dat |>
         dplyr::mutate(rows_to_keep = dat_in_pane()) |>
         dplyr::filter(rows_to_keep)
     }
     
     popup_content = leafpop::popupTable(
-      if(sum(dat$rows_to_keep)==0){
+      if (sum(dat$rows_to_keep) == 0) {
         return(NULL)
       } else {
         dat |>
@@ -154,15 +160,15 @@ observe({
     )
     
     # Color logic
-    if(!is.null(occ_dat_sp()) & input$search_type_input){
-      if(input$ais_rangemap_reg == 'None'){
+    if (!is.null(occ_dat_sp()) && input$search_type_input) {
+      if (input$ais_rangemap_reg == 'None') {
         dat_for_plot = dat |> dplyr::mutate(marker_colour = DataSource)
       } else {
         dat_for_plot = dat |> dplyr::mutate(marker_colour = Species)
       }
     }
-    if(!is.null(input$all_sp_in_wb_wb_name)){
-      if(!'results' %in% names(all_sp_in_wbs())){
+    if (!is.null(input$all_sp_in_wb_wb_name)) {
+      if (!any(names(all_sp_in_wbs()) == "results")) {
         dat_for_plot = dat |> dplyr::mutate(marker_colour = Species)
       }
     }
@@ -190,21 +196,22 @@ observe({
     ## Other occurrence types
     eradicated_to_plot = eradicated_occs |>
       dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
-      dplyr::mutate(Date = lubridate::ymd(Date))
+      dplyr::mutate(Date = suppressWarnings(lubridate::ymd(Date, quiet = TRUE)))
+    
     native_to_plot = native_range_occs |>
       dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
-      dplyr::mutate(Date = lubridate::ymd(Date))
+      dplyr::mutate(Date = suppressWarnings(lubridate::ymd(Date, quiet = TRUE)))
+    
     anecdotal_to_plot = anecdotal_occs |>
       dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
-      dplyr::mutate(Date = lubridate::ymd(Date))
+      dplyr::mutate(Date = suppressWarnings(lubridate::ymd(Date, quiet = TRUE)))
     
     if (!is.null(selected_species) && length(selected_species) > 0) {
       eradicated_to_plot = eradicated_to_plot |> dplyr::filter(Species %in% selected_species)
       native_to_plot     = native_to_plot     |> dplyr::filter(Species %in% selected_species)
-      anecdotal_to_plot  = anecdotal_to_plot  |> dplyr::filter(Species %in% selected_species)
-    }
+      anecdotal_to_plot  = anecdotal_to_plot  |> dplyr::filter(Species %in% selected_species)}
     
-    if(!is.null(selected_dates())){
+    if (!is.null(selected_dates())) {
       eradicated_to_plot = eradicated_to_plot |> 
         dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
                                                         end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
@@ -252,7 +259,7 @@ observe({
         )
     }
     
-    if(nrow(eradicated_to_plot) > 0 | nrow(native_to_plot) > 0 | nrow(anecdotal_to_plot) > 0){
+    if (nrow(eradicated_to_plot) > 0 || nrow(native_to_plot) > 0 || nrow(anecdotal_to_plot) > 0) {
       l = l |> addControl(position = "topright", html = legend_html, layerId = 'custom_legend')
     }
     
@@ -262,7 +269,7 @@ observe({
     rows <- tryCatch(ais_selected_rows(), error = function(e) NULL)
     if (is.numeric(rows) && length(rows) > 0 && all(!is.na(rows)) && all(rows <= nrow(dat))) {
       dat = plot_dat() |> dplyr::mutate(rows_to_keep = TRUE)
-      if(input$map_pane_filter_sel){
+      if (input$map_pane_filter_sel) {
         dat = dat |> dplyr::mutate(rows_to_keep = dat_in_pane())
       }
       l = l |>
@@ -279,7 +286,7 @@ observe({
   }
   
   # Buffers
-  if(!is.null(occ_dat_buffer())){
+  if (!is.null(occ_dat_buffer())) {
     l = l |>
       clearGroup('selected_species_buffer') |>
       addPolygons(
@@ -291,7 +298,7 @@ observe({
       )
   }
   # Rasters
-  if(!is.null(occ_dat_raster())){
+  if (!is.null(occ_dat_raster())) {
     l = l |>
       clearGroup('selected_species_raster') |>
       leaflet::removeControl('selected_species_raster_legend') |>
@@ -303,7 +310,7 @@ observe({
                 values = values(occ_dat_raster()),
                 layerId = 'selected_species_raster_legend')
   }
-  if(is.null(occ_dat_buffer()) & is.null(occ_dat_raster())){
+  if (is.null(occ_dat_buffer()) && is.null(occ_dat_raster())) {
     l = l |>
       clearGroup('selected_species_buffer') |>
       clearGroup('selected_species_raster') |>
