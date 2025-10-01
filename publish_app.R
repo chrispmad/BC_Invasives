@@ -1,3 +1,5 @@
+
+
 cat("This script updates the BC Invasives Dashboard (https://chrispmadsen.shinyapps.io/bc_invasives_dashboard/)\n")
 
 invisible(library(tidyverse))
@@ -102,6 +104,14 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   bullhead_entry<-c("Fish", "Management", "Bullhead sp", "Ameiurus", "sp")
 
   pr_sp<-rbind(pr_sp, bullhead_entry)
+  
+  bass_entry<-c("Fish", "Management", "Bass sp", "Micropterus", "sp")
+  
+  pr_sp<-rbind(pr_sp, bass_entry)
+  
+  snakehead_entry<-c("Fish", "Management", "Snakehead sp", "Channidae", "sp")
+  
+  pr_sp<-rbind(pr_sp, snakehead_entry)
 
   # Just for our species of interest.
   pr_sp = pr_sp |>
@@ -219,31 +229,46 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     mutate(`Confirmed common name` = Species) |>
     mutate(Species = "Bullhead sp")
 
-
-
-
   occ_dat_res_b <- occ_dat_res_b |>
     mutate(`Confirmed common name` = Species)
 
   occ_dat_res_b <- bind_rows(occ_dat_res_b, bullhead_group) |>
     arrange(Species)
 
+  
+  # for Bass, we want either smallmouth or largemouth
+  # just anything with bass in the common name - will this be an issue in the future?
+  bass_rows <- occ_dat_res_b |>
+    filter(str_detect(Species, regex("Bass", ignore_case = TRUE)))
+  
+  
+  bass_group <- bass_rows |>
+    mutate(`Confirmed common name` = Species) |>
+    mutate(Species = "Bass sp")
+  
+  occ_dat_res_b <- occ_dat_res_b |>
+    mutate(`Confirmed common name` = Species)
+  
+  occ_dat_res_b <- bind_rows(occ_dat_res_b, bass_group) |>
+    arrange(Species)
 
-
-  ### Must be finished
-  # bass_rows<-occ_dat_res_b |>
-  #   filter(str_detect(Species, regex("Bass", ignore_case = TRUE))) |>
-  #   filter(str_detect(Species, regex("Bass (small or large-mouth)", ignore_case = TRUE))) |>
-  #   filter(str_detect(Species, regex("Smallmouth bass", ignore_case = TRUE))) |>
-  #   filter(str_detect(Species, regex("Largemouth bass", ignore_case = TRUE)))
-  #
-  #
-  # bullhead_group <- bullhead_rows |>
-  #   mutate(Species = "Bullhead sp")
-  #
-
-
-  ######
+  bass_rows <- occ_dat_res_b |>
+    filter(str_detect(Species, regex("Bass", ignore_case = TRUE)))
+  
+  # group the snakeheads
+  snakehead_rows <- occ_dat_res_b |>
+    filter(str_detect(Species, regex("snakehead", ignore_case = TRUE)))
+  
+  snakehead_group <- snakehead_rows |>
+    mutate(`Confirmed common name` = Species) |>
+    mutate(Species = "Snakehead sp")
+  
+  occ_dat_res_b <- occ_dat_res_b |>
+    mutate(`Confirmed common name` = Species)
+  
+  occ_dat_res_b <- bind_rows(occ_dat_res_b, snakehead_group) |>
+    arrange(Species)
+  
 
   file.remove("app/www/native_range_occs.gpkg")
   file.remove("app/www/eradicated_occs.gpkg")
