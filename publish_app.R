@@ -3,7 +3,7 @@
 cat("This script updates the BC Invasives Dashboard (https://chrispmadsen.shinyapps.io/bc_invasives_dashboard/)\n")
 
 invisible(library(tidyverse))
-invisible(library(devtools))
+#invisible(library(devtools))
 
 
 
