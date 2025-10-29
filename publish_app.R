@@ -3,6 +3,9 @@
 cat("This script updates the BC Invasives Dashboard (https://chrispmadsen.shinyapps.io/bc_invasives_dashboard/)\n")
 
 invisible(library(tidyverse))
+invisible(library(devtools))
+
+
 
 # Check to see if a previous attempt to automatically
 # publish this app has failed; if so, don't attempt any of the stuff below,
@@ -281,14 +284,14 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   sf::write_sf(occ_dat_res_b, 'app/www/occ_dat.gpkg')
 
   print("Written SF object of occurrence data records to app's www folder")
-
+  
   if(!publishing_results$error){
     # Update bcinvadeR R package
     if('bcinvadeR' %in% devtools::loaded_packages()$package){
       devtools::unload('bcinvadeR')
     }
     devtools::install_github('chrispmad/bcinvadeR',
-                             upgrade = 'never')
+                             upgrade = 'never', force = TRUE)
   }
 
   if(!publishing_results$error){
@@ -317,4 +320,5 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 }
 
 print(paste0('Republishing of app complete at ', Sys.time()))
+
 
