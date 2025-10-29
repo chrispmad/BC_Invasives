@@ -139,7 +139,7 @@ observe({
         dplyr::filter(Species %in% selected_species) |>
         dplyr::mutate(rows_to_keep = TRUE)
     } else {
-      dat <- plot_dat() |> dplyr::mutate(rows_to_keep = TRUE)
+      dat <- plot_dat() |> dplyr::mutate(rows_to_keep = TRUE) 
     }
     
     # Check to see if the user wants to filter datatable records by the map bounds.
