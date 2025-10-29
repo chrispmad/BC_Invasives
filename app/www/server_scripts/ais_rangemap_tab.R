@@ -322,7 +322,9 @@ observeEvent(input$search_for_all_sp_in_wb, {
 
       # Buffer the waterbody polygon by, say, 100 meters.
       wb_poly = sf::st_buffer(wb_poly, dist = buffer_size)
-
+      
+          
+      
       all_species_results = tryCatch(
         find_all_species_in_waterbody(
           wb_poly,
@@ -332,11 +334,15 @@ observeEvent(input$search_for_all_sp_in_wb, {
           excel_path = 'Master Incidence Report Records.xlsx',
           sheet_name = 'Aquatic Reports',
           excel_species_var = 'Submitted_Common_Name',
-          output_crs = 4326,
-          quiet = T),
+          output_crs = 4326),
         error = function(e) (data.frame(result = "No records found for target waterbody"))
       )
-
+      
+      
+      #filter the returned species by what we have on our pr_sp list
+      # all_species_results <- all_species_results |> 
+      #   filter(stringr::str_to_lower(Species) %in% stringr::str_to_lower(pr_sp$name))
+      
       if(nrow(all_species_results) == 1){
         if(ncol(all_species_results) == 1){
           if(all_species_results == data.frame(result = "No records found for target waterbody")){
@@ -349,13 +355,16 @@ observeEvent(input$search_for_all_sp_in_wb, {
         }
       } else {
         # # Filter these results for species in our list of target AIS species.
-        # target_species_results = all_species_results |>
-        #   dplyr::mutate(Species = stringr::str_to_sentence(Species)) |>
-        #   dplyr::filter(Species %in% stringr::str_to_sentence(pr_sp$name))
-        # all_sp_in_wbs(target_species_results)
+        all_species_results = all_species_results |>
+          dplyr::mutate(Species = stringr::str_to_sentence(Species)) |>
+          dplyr::filter(Species %in% stringr::str_to_sentence(pr_sp$name))
+        #all_sp_in_wbs(target_species_results)
         # Multiple rows of results - assign to reactiveVal.
+        
+        
         all_sp_in_wbs(all_species_results)
-        print(all_sp_in_wbs())
+        #print(all_sp_in_wbs())
+        unique(all_species_results$DataSource)
       }
     })
 })
