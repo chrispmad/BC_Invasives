@@ -132,7 +132,7 @@ observe({
       leaflet::clearGroup(group = 'anecdotal_markers') |>
       leaflet::removeControl('selected_species_legend') |>
       leaflet::removeControl('custom_legend')
-    
+
     # if species search, filter; if waterbody search, keep all
     if (!is.null(selected_species) && length(selected_species) > 0) {
       dat <- plot_dat() |>

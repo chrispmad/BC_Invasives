@@ -324,19 +324,31 @@ observeEvent(input$search_for_all_sp_in_wb, {
       wb_poly = sf::st_buffer(wb_poly, dist = buffer_size)
       
           
+      print(wb_poly)
+      # all_species_results = tryCatch(
+      #   find_all_species_in_waterbody(
+      #     wb_poly,
+      #     in_shiny = T,
+      #     sources = c("FDIS","Old Aquatic","Incident Reports","iNaturalist"),
+      #     exclude = c('Fungi','Plantae'),
+      #     excel_path = 'Master Incidence Report Records.xlsx',
+      #     sheet_name = 'Aquatic Reports',
+      #     excel_species_var = 'Submitted_Common_Name',
+      #     output_crs = 4326),
+      #   error = function(e) (data.frame(result = "No records found for target waterbody"))
+      # )
       
-      all_species_results = tryCatch(
-        find_all_species_in_waterbody(
-          wb_poly,
-          in_shiny = T,
-          sources = input$all_sp_in_wbs_sources,
-          exclude = c('Fungi','Plantae'),
-          excel_path = 'Master Incidence Report Records.xlsx',
-          sheet_name = 'Aquatic Reports',
-          excel_species_var = 'Submitted_Common_Name',
-          output_crs = 4326),
-        error = function(e) (data.frame(result = "No records found for target waterbody"))
-      )
+      all_sp_total = occ_dat_conf_filt()
+      
+      all_species_results = tryCatch({
+        sf::st_filter(
+          all_sp_total,
+          sf::st_transform(wb_poly, sf::st_crs(all_sp_total))
+        )
+      }, error = function(e) {
+        message("❌ Error in st_filter: ", e$message)
+        return(data.frame(result = "No records found for target waterbody"))
+      })
       
       
       #filter the returned species by what we have on our pr_sp list
@@ -364,7 +376,7 @@ observeEvent(input$search_for_all_sp_in_wb, {
         
         all_sp_in_wbs(all_species_results)
         #print(all_sp_in_wbs())
-        unique(all_species_results$DataSource)
+      
       }
     })
 })

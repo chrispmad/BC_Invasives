@@ -291,7 +291,7 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       devtools::unload('bcinvadeR')
     }
     devtools::install_github('chrispmad/bcinvadeR',
-                             upgrade = 'never', force = TRUE)
+                             upgrade = 'never')
   }
 
   if(!publishing_results$error){
