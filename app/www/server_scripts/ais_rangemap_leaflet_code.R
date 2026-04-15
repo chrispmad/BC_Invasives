@@ -30,14 +30,18 @@ output$ais_rangemap_leaf = renderLeaflet({
 
 
 occ_dat_pal = reactive({
+  
   req(!is.null(occ_dat_sp()) || !any(names(all_sp_in_wbs()) == "results"))
   
   if (!is.null(occ_dat_sp()) || !any(names(all_sp_in_wbs()) == "results")) {
     if (!is.null(occ_dat_sp())) {
       if (input$ais_rangemap_reg == 'None') {
         # Drop-down species selector used.
-        leaflet::colorFactor(palette = 'Spectral',
-                             domain = c("SPI","Old AIS Layer","Incidental Observations","iNaturalist"))
+        leaflet::colorFactor(
+          palette  = "Spectral",
+          domain   = c("SPI","Old AIS Layer","Incidental Observations","iNaturalist"),
+          na.color = "#808080"
+        )
       } else {
         # Drop-down region selector used.
         leaflet::colorFactor(palette = 'Spectral',
@@ -236,6 +240,7 @@ observe({
     }
     
     if (nrow(native_to_plot) > 0) {
+      
       l <- l |>
         leaflet::addMarkers(
           data = native_to_plot,
