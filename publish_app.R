@@ -166,17 +166,31 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
 
   # 1) Native Range
   ## Ecological Drainage Units
-  np_native_range = bcdata::bcdc_query_geodata("eaubc-ecological-drainage-units") |>
-    bcdata::filter(ECO_DRAINAGE_UNIT %in% c("Alsek","North Coastal","Lewes","Nakina",
-                                    "Teslin","Upper Stikine","Upper Liard","Taku",
-                                    "Lower Liard","Lower Peace","Hay")) |>
+  np_native_range <- bcdata::bcdc_query_geodata("eaubc-ecological-drainage-units") |>
+    bcdata::filter(
+      ECO_DRAINAGE_UNIT %in% c(
+        "Alsek","North Coastal","Lewes","Nakina",
+        "Teslin","Upper Stikine","Upper Liard","Taku",
+        "Lower Liard","Lower Peace","Hay"
+      )
+    ) |>
     bcdata::collect() |>
+    # sf::st_make_valid() |>
+    # sf::st_union() |>             # merge into ONE polygon
+    # sf::st_buffer(10000) |>       # 10 km buffer
+    # sf::st_make_valid() |>
     sf::st_transform(4326)
+  
+  
+  
+  
 
   walleye_native_range = bcdata::bcdc_query_geodata("eaubc-ecological-drainage-units") |>
     bcdata::filter(ECO_DRAINAGE_UNIT %in% c("Upper Liard","Lower Liard","Hay","Lower Peace")) |>
     bcdata::collect() |>
     sf::st_transform(4326)
+  
+  
 
   native_range_occs = dplyr::bind_rows(
     occ_dat_res_b |>
@@ -187,6 +201,11 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       sf::st_filter(walleye_native_range)
   ) |>
     dplyr::mutate(range_label = "native")
+  
+  tagish_lake_occ<- occ_dat_res_b |> 
+    dplyr::filter(Species == "Northern pike" & Location == "TAGISH LAKE" & Date == "1984-01-01")
+    
+  native_range_occs = dplyr::bind_rows(native_range_occs, tagish_lake_occ)
 
   print(paste0("Looking for native ranges of Northern Pike and Walleye, we found ",nrow(native_range_occs)," rows that describe native occurences."))
   print(paste0("Before removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
@@ -229,11 +248,10 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     filter(str_detect(Species, regex("Bullhead", ignore_case = TRUE)))
 
   bullhead_group <- bullhead_rows |>
-    mutate(`Confirmed common name` = Species) |>
     mutate(Species = "Bullhead sp")
 
-  occ_dat_res_b <- occ_dat_res_b |>
-    mutate(`Confirmed common name` = Species)
+  # occ_dat_res_b <- occ_dat_res_b |>
+  #   mutate(`Confirmed common name` = Species)
 
   occ_dat_res_b <- bind_rows(occ_dat_res_b, bullhead_group) |>
     arrange(Species)
@@ -246,11 +264,10 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   
   
   bass_group <- bass_rows |>
-    mutate(`Confirmed common name` = Species) |>
     mutate(Species = "Bass sp")
   
-  occ_dat_res_b <- occ_dat_res_b |>
-    mutate(`Confirmed common name` = Species)
+  # occ_dat_res_b <- occ_dat_res_b |>
+  #   mutate(`Confirmed common name` = Species)
   
   occ_dat_res_b <- bind_rows(occ_dat_res_b, bass_group) |>
     arrange(Species)
@@ -263,11 +280,10 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
     filter(str_detect(Species, regex("snakehead", ignore_case = TRUE)))
   
   snakehead_group <- snakehead_rows |>
-    mutate(`Confirmed common name` = Species) |>
     mutate(Species = "Snakehead sp")
   
-  occ_dat_res_b <- occ_dat_res_b |>
-    mutate(`Confirmed common name` = Species)
+  # occ_dat_res_b <- occ_dat_res_b |>
+  #   mutate(`Confirmed common name` = Species)
   
   occ_dat_res_b <- bind_rows(occ_dat_res_b, snakehead_group) |>
     arrange(Species)
