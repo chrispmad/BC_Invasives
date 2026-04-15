@@ -73,7 +73,8 @@ AIS_rangemap_navpanel = bslib::nav_panel(
         sidebar = sidebar(
           tbl_column,
           width = '50%',
-          position = 'right'
+          position = 'right',
+          open = FALSE
         )
       )
     )
