@@ -175,32 +175,59 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
       )
     ) |>
     bcdata::collect() |>
+    sf::st_transform(3005) |> 
+    sf::st_buffer(2000) |> 
     # sf::st_make_valid() |>
     # sf::st_union() |>             # merge into ONE polygon
     # sf::st_buffer(10000) |>       # 10 km buffer
     # sf::st_make_valid() |>
     sf::st_transform(4326)
   
-  
-  
-  
-
+  ## Native range of walleye
   walleye_native_range = bcdata::bcdc_query_geodata("eaubc-ecological-drainage-units") |>
     bcdata::filter(ECO_DRAINAGE_UNIT %in% c("Upper Liard","Lower Liard","Hay","Lower Peace")) |>
     bcdata::collect() |>
+    sf::st_transform(3005) |> 
+    sf::st_buffer(2000) |> 
     sf::st_transform(4326)
   
+  yellow_locs = bcdata::bcdc_query_geodata("freshwater-atlas-lakes") |>
+    #dplyr::filter(GNIS_NAME_1 %in% c("Swan Lake", "Charlie Lake")) |> 
+    dplyr::filter(WATERBODY_POLY_ID %in% c(97100140, 116037060)) |> 
+    bcdata::collect() |>
+    sf::st_transform(3005) |> 
+    sf::st_buffer(1000) |> 
+    sf::st_transform(4326)
+    
+  # leaflet map to show the lakes, and then show me the WATERBODY_POLY_ID on hover
+  # leaflet() |>
+  #   addTiles() |>
+  #   addPolygons(data = walleye_native_range,
+  #               color = "steelblue",
+  #               fillOpacity = 0.3,
+  #               label = ~ECO_DRAINAGE_UNIT) |>
+  #   addPolygons(data = yellow_locs,
+  #               label = ~as.character(WATERBODY_POLY_ID))
   
-
+  
+  
+  ## native range of Yellow Perch\ 
+    
+ 
+  
   native_range_occs = dplyr::bind_rows(
     occ_dat_res_b |>
       dplyr::filter(Species == 'Northern pike') |>
       sf::st_filter(np_native_range),
     occ_dat_res_b |>
       dplyr::filter(Species == 'Walleye') |>
-      sf::st_filter(walleye_native_range)
-  ) |>
-    dplyr::mutate(range_label = "native")
+      sf::st_filter(walleye_native_range),
+    occ_dat_res_b |>
+      dplyr::filter(Species == 'Yellow perch') |>
+      sf::st_filter(yellow_locs)
+  ) 
+    
+  
   
   tagish_lake_occ<- occ_dat_res_b |> 
     dplyr::filter(Species == "Northern pike" & Location == "TAGISH LAKE" & Date == "1984-01-01")
@@ -217,14 +244,26 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   print(paste0("After removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
 
   # 2) Eradicated
+  
+  yellow_treatments = read_rds("app/www/treatment_events.rds")
   eradicated_occs = occ_dat_res_b |>
     # Only one eradicated record currently, for Northern Pike!
     dplyr::filter((Date == '2009' & Location == 'Haha Lake' & Species == "Northern pike") |
                     (Date == '2006' & Location == 'Haha Lake' & Species == "Northern pike"))
+  
+  ## eradicated yellow perch treatment locations
+  # fish_in_lakes <- occ_dat_res_b |>
+  #   sf::st_join(
+  #     yellow_treatments,                # your multipolygon lakes object
+  #     join = sf::st_within     # or st_intersects (see note below)
+  #   )
 
+  
+  
+  
   print(paste0("Looking for records that have been flagged as eradicated, we found ",nrow(eradicated_occs)," rows."))
   print(paste0("Before removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
-  # Drop records that are now in native range
+  # Drop records that are eradicated
   occ_dat_res_b = occ_dat_res_b |>
     dplyr::anti_join(eradicated_occs |>
                        sf::st_drop_geometry())
