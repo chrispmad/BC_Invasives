@@ -25,16 +25,16 @@ pr_sp_conf_filt = reactive({
     ) |>
     mutate(n = replace_na(n, 0)) |>
     dplyr::mutate(label = paste0(name,' (',n,' records)'))
-
+  
   # Add groups of species, like Asian Carp
   Asian_carp_n = sum(pr_sp[pr_sp$name %in% c("Bighead carp","Black carp","Grass carp","Silver carp"),]$n)
-
+  
   pr_sp = pr_sp |>
     dplyr::add_row(group = 'Fish', status = 'Prevent', name = 'Asian carp',
                    genus = 'Family: Cyprinidae', species = 'sp.', n = Asian_carp_n,
                    label = paste0('Asian carp (',Asian_carp_n,' records)')) |>
     dplyr::arrange(name)
-
+  
   pr_sp
 })
 
@@ -44,7 +44,7 @@ pr_sp_conf_filt = reactive({
 
 # Render UI to be EITHER a search by species name OR a search by waterbody location.
 output$search_ui_output = renderUI({
-
+  
   if(input$search_type_input){
     tagList(
       h5("Select Species", style = section_title_margin),
@@ -116,24 +116,49 @@ output$search_ui_output = renderUI({
 })
 
 output$date_filter_of_inspection_records = renderUI({
-
   req(!is.null(occ_dat_sp()) | 'results' %in% names(all_sp_in_wbs()))
-
+  
   if(!is.null(occ_dat_sp())){
     occ_dat = occ_dat_sp()
   }
   if(!'results' %in% names(all_sp_in_wbs())){
     occ_dat = all_sp_in_wbs()
   }
-
-  occ_dat = occ_dat |>
-    dplyr::mutate(Date = ifelse(!stringr::str_detect(Date,"-"),paste0(Date,"-01-01"),Date)) |>
-    dplyr::mutate(Date = lubridate::ymd(Date))
-
-  min_date = min(occ_dat$Date, na.rm=T)
-  max_date = max(occ_dat$Date, na.rm=T)
-
-  if(min_date != Inf & max_date != -Inf){
+  
+  safe_parse_date <- function(df) {
+    tryCatch({
+      if(is.null(df) || nrow(df) == 0) return(data.frame(Date = as.Date(character(0))))
+      if(!'Date' %in% names(df)) return(data.frame(Date = as.Date(character(0))))
+      
+      # Drop geometry only if sf object
+      if(inherits(df, 'sf')) df <- sf::st_drop_geometry(df)
+      
+      df |>
+        dplyr::select(Date) |>
+        dplyr::mutate(Date = dplyr::case_when(
+          is.na(Date)                                   ~ NA_Date_,
+          !stringr::str_detect(as.character(Date), "-") ~ as.Date(paste0(Date, "-01-01")),
+          TRUE                                          ~ as.Date(Date)
+        ))
+    }, error = function(e) {
+      message("safe_parse_date error: ", e$message)
+      data.frame(Date = as.Date(character(0)))
+    })
+  }
+  
+  all_dates = dplyr::bind_rows(
+    safe_parse_date(occ_dat),
+    safe_parse_date(eradicated_occs),
+    safe_parse_date(native_range_occs),
+    safe_parse_date(anecdotal_occs)
+  )
+  
+  min_date = min(all_dates$Date, na.rm = TRUE)
+  max_date = max(all_dates$Date, na.rm = TRUE)
+  
+  message("Date slider range: ", min_date, " to ", max_date)
+  
+  if(is.finite(min_date) & is.finite(max_date)){
     return(
       sliderInput(inputId = 'date_filter_for_occ_dat',
                   'Date Filter',
@@ -166,9 +191,9 @@ dat_in_pane = reactive({
                            crs = 4326) |>
     sf::st_bbox() |>
     sf::st_as_sfc()
-
+  
   rows_to_display = sapply(sf::st_intersects(plot_dat(), leaf_pane), \(x) length(x) != 0)
-
+  
   return(rows_to_display)
 })
 
@@ -200,20 +225,20 @@ leafmap_clicked_lng = reactiveVal(NA)
 # =======================
 
 output$records_as_table = DT::renderDT({
-
+  
   dat = plot_dat()
-
+  
   if(!is.null(dat)){
     dat = dat |>
       dplyr::mutate(rows_to_keep = TRUE)
-
+    
     # Check to see if the user wants to filter datatable
     # records by the map bounds.
     if(input$map_pane_filter_sel){
       dat = dat |>
         dplyr::mutate(rows_to_keep = dat_in_pane())
     }
-
+    
     # Show datatable.
     DT::datatable(
       dat |>
@@ -308,22 +333,22 @@ output$heatmap_dl = downloadHandler(
 
 observeEvent(input$search_for_all_sp_in_wb, {
   req(!is.null(input$all_sp_in_wbs_name) | (!is.null(input$all_sp_in_wb_lat) & !is.null(input$all_sp_in_wb_lng)))
-
+  
   buffer_size = input$waterbody_poly_buffer_size
-
+  
   withProgress(
     message = 'Getting waterbody polygon',
     detail = 'Combining records...',
     value = 0/5,
     expr = {
-
+      
       wb_poly = get_waterbody_polygon(focus_wb_name = input$all_sp_in_wbs_name,
                                       focus_wb_coordinates = c(input$all_sp_in_wb_lng,input$all_sp_in_wb_lat))
-
+      
       # Buffer the waterbody polygon by, say, 100 meters.
       wb_poly = sf::st_buffer(wb_poly, dist = buffer_size)
       
-          
+      
       print(wb_poly)
       # all_species_results = tryCatch(
       #   find_all_species_in_waterbody(
@@ -355,17 +380,17 @@ observeEvent(input$search_for_all_sp_in_wb, {
       # all_species_results <- all_species_results |> 
       #   filter(stringr::str_to_lower(Species) %in% stringr::str_to_lower(pr_sp$name))
       
-      if(nrow(all_species_results) == 1){
-        if(ncol(all_species_results) == 1){
-          if(all_species_results == data.frame(result = "No records found for target waterbody")){
-            all_sp_in_wbs(data.frame(results = 'No search run yet.'))
-          } else {
-            # Single row of results - assign to reactiveVal.
-            all_sp_in_wbs(all_species_results)
-            print(all_sp_in_wbs())
-          }
-        }
+      if(nrow(all_species_results) == 1 &&
+         ncol(all_species_results) == 1 &&
+         "result" %in% names(all_species_results) &&
+         all_species_results$result[1] == "No records found for target waterbody"){
+        
+        all_sp_in_wbs(data.frame(results = 'No search run yet.'))
+        
       } else {
+        # Any real result set, including a single-row occurrence.
+        all_sp_in_wbs(all_species_results)
+        print(all_sp_in_wbs())
         # # Filter these results for species in our list of target AIS species.
         all_species_results = all_species_results |>
           dplyr::mutate(Species = stringr::str_to_sentence(Species)) |>
@@ -376,18 +401,18 @@ observeEvent(input$search_for_all_sp_in_wb, {
         
         all_sp_in_wbs(all_species_results)
         #print(all_sp_in_wbs())
-      
+        
       }
     })
 })
 
 # Update species selector
 observe({
-shinyWidgets::updatePickerInput(session = session,
-                                inputId = 'ais_rangemap_sp',
-                                choices = pr_sp_conf_filt()$label,
-                                selected = pr_sp_conf_filt()$label[1]
-                                )
+  shinyWidgets::updatePickerInput(session = session,
+                                  inputId = 'ais_rangemap_sp',
+                                  choices = pr_sp_conf_filt()$label,
+                                  selected = pr_sp_conf_filt()$label[1]
+  )
 })
 # Inform choices for natural resource selector
 shinyWidgets::updatePickerInput(session = session,
@@ -404,7 +429,7 @@ observeEvent(input$search_type_input, {
                                     choices = pr_sp_conf_filt()$label,
                                     # selected = pr_sp$label[1]
                                     selected = 'None'
-                                    )
+    )
     shinyWidgets::updatePickerInput(session = session,
                                     inputId = 'ais_rangemap_reg',
                                     choices = c('None',nr_regs$reg_name),
@@ -461,9 +486,9 @@ selected_wb_from_tbl = reactiveVal("None")
 observe({
   if(!input$search_type_input){
     if(!is.null(input$all_sp_in_wb_wb_name)){
-
+      
       if(input$all_sp_in_wb_wb_name != "None"){
-
+        
         if(input$all_sp_in_wb_wb_name != selected_wb_from_tbl()){
           # Check that the clicked coordinates field would change based on this wb selection.
           # If not, then don't make Shiny do this multiple times
@@ -535,39 +560,39 @@ source("server_scripts/leaflet_map_and_data_table_interactions.R", local = TRUE)
 
 # Button that generates buffer around points.
 observeEvent(input$make_ais_buffer, {
-
+  
   req(nrow(plot_dat()) > 0)
-
+  
   species_to_buffer = unique(plot_dat()$Species)
-
+  
   # Buffer x kilometers around the selected species.
   result = sf::st_buffer(plot_dat() |>
                            dplyr::filter(Species %in% species_to_buffer) |>
                            dplyr::group_by(Species) |>
                            dplyr::summarise(),
                          dist = 1000*input$ais_buffer_radius)
-
+  
   # Pop into the reactiveVal.
   occ_dat_buffer(result)
-
+  
 })
 
 # Button that generates raster heatmap.
 observeEvent(input$make_ais_heatmap_raster, {
-
+  
   req(nrow(plot_dat()) > 0)
   req(input$ais_raster_heatmap_res >= 0.001 & input$ais_raster_heatmap_res <= 0.1)
-
+  
   # make blank raster of bc extent with user's chosen resolution
   blank_rast = terra::rast(terra::vect(bc), res = 1000000 * input$ais_raster_heatmap_res)
   blank_rast$val = 1
   blank_rast = terra::project(blank_rast, terra::crs('WGS84'))
   blank_rast = terra::mask(blank_rast, terra::vect(sf::st_transform(bc,4326)))
-
+  
   filled_rast = terra::rasterize(terra::vect(plot_dat()),
                                  blank_rast,
                                  fun = length)
-
+  
   # Pop into the reactiveVal.
   occ_dat_raster(filled_rast)
 })
@@ -610,6 +635,6 @@ observeEvent(input$reset_species_selection,{
     clearGroup("anecdotal_markers") |> 
     clearGroup("selected_species_buffer") |> 
     clearGroup("selected_species_raster") 
-    
-    
+  
+  
 })
