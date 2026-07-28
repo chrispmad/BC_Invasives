@@ -211,20 +211,25 @@ observe({
       dplyr::mutate(Date = suppressWarnings(lubridate::ymd(Date, quiet = TRUE)))
     
     if (!is.null(selected_species) && length(selected_species) > 0) {
-      eradicated_to_plot = eradicated_to_plot |> dplyr::filter(Species %in% selected_species)
-      native_to_plot     = native_to_plot     |> dplyr::filter(Species %in% selected_species)
-      anecdotal_to_plot  = anecdotal_to_plot  |> dplyr::filter(Species %in% selected_species)}
+      eradicated_to_plot = eradicated_to_plot |> dplyr::filter(stringr::str_to_sentence(Species) %in% stringr::str_to_sentence(selected_species))
+      native_to_plot     = native_to_plot     |> dplyr::filter(stringr::str_to_sentence(Species) %in% stringr::str_to_sentence(selected_species))
+      anecdotal_to_plot  = anecdotal_to_plot  |> dplyr::filter(stringr::str_to_sentence(Species) %in% stringr::str_to_sentence(selected_species))}
     
-    if (!is.null(selected_dates())) {
-      eradicated_to_plot = eradicated_to_plot |> 
-        dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
-                                                        end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
-      native_to_plot = native_to_plot |> 
-        dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
-                                                        end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
-      anecdotal_to_plot = anecdotal_to_plot |> 
-        dplyr::filter(Date %within% lubridate::interval(start = lubridate::ymd(selected_dates()[1]),
-                                                        end = lubridate::ymd(selected_dates()[2])) | is.na(Date))
+    if (!is.null(selected_dates()) && length(selected_dates()) == 2) {
+      
+      
+      
+      date_start <- tryCatch(as.Date(selected_dates()[1]), error = function(e) NULL)
+      date_end   <- tryCatch(as.Date(selected_dates()[2]), error = function(e) NULL)
+      
+      safe_date_filter <- function(df) {
+        if (is.null(date_start) || is.null(date_end)) return(df)
+        df |> dplyr::filter(is.na(Date) | (Date >= date_start & Date <= date_end))
+      }
+      
+      eradicated_to_plot <- safe_date_filter(eradicated_to_plot)
+      native_to_plot     <- safe_date_filter(native_to_plot)
+      anecdotal_to_plot  <- safe_date_filter(anecdotal_to_plot)
     }
     
     if (nrow(eradicated_to_plot) > 0) {
