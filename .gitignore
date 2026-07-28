@@ -14,3 +14,4 @@
 *.csv
 publishing_results/*
 app/rsconnect/*
+.positai
