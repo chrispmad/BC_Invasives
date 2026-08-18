@@ -282,12 +282,21 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
                        sf::st_drop_geometry())
   print(paste0("After removing those rows from the AIS data file, there are ",nrow(occ_dat_res_b)," rows."))
 
+  
+  occ_dat_res_b = occ_dat_res_b |> 
+    dplyr::mutate(`Confirmed Species` = dplyr::case_when(
+      ID_Confirmation == "Confirmed" ~ Species,
+      TRUE ~ "Unconfirmed"
+    ))
+  
+  
+  
   # for Bullheads, we are going to merge them all - so that Yellow, Brown, Black, And Bullead are shown.
   bullhead_rows <- occ_dat_res_b |>
     filter(str_detect(Species, regex("Bullhead", ignore_case = TRUE)))
 
   bullhead_group <- bullhead_rows |>
-    mutate(Species = "Bullhead sp")
+    mutate(Species = paste0("Bullhead sp"))
 
   # occ_dat_res_b <- occ_dat_res_b |>
   #   mutate(`Confirmed common name` = Species)
@@ -303,24 +312,20 @@ if(!file.exists(paste0('publishing_results/publishing_results_',Sys.Date(),'_err
   
   
   bass_group <- bass_rows |>
-    mutate(Species = "Bass sp")
+    mutate(Species = paste0("Bass sp"))
   
   # occ_dat_res_b <- occ_dat_res_b |>
   #   mutate(`Confirmed common name` = Species)
   
   occ_dat_res_b <- bind_rows(occ_dat_res_b, bass_group) |>
     arrange(Species)
-
-  bass_rows <- occ_dat_res_b |>
-    filter(str_detect(Species, regex("Bass", ignore_case = TRUE)))
   
   # group the snakeheads
   snakehead_rows <- occ_dat_res_b |>
     filter(str_detect(Species, regex("snakehead", ignore_case = TRUE)))
   
   snakehead_group <- snakehead_rows |>
-    mutate(Species = "Snakehead sp")
-  
+    mutate(Species = paste0("Snakehead sp"))
   # occ_dat_res_b <- occ_dat_res_b |>
   #   mutate(`Confirmed common name` = Species)
   
