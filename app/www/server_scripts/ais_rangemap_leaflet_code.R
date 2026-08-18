@@ -1,6 +1,9 @@
 # build-in color palette
 my_colours = glasbey.colors(length(unique(occ_dat$Species)))
 
+source_order <- c("iNaturalist", "Old AIS Layer", "SPI", "Incidental Observations") # bottom -> top
+
+
 output$ais_rangemap_leaf = renderLeaflet({
   regs = sf::read_sf("nr_regions.gpkg")
   bc_bound = sf::read_sf("bc_bound.gpkg")
@@ -87,6 +90,7 @@ observe({
   }
 })
 
+
 observe({
   # If we have just switched to waterbody search mode, wipe map.
   if (is.null(occ_dat_sp()) && any(names(all_sp_in_wbs()) == "results")) {
@@ -127,6 +131,9 @@ observe({
         selected_species <- stringr::str_remove_all(input$ais_rangemap_sp, " \\(.*")
       }
     }
+    
+    
+    
     
     l = leaflet::leafletProxy('ais_rangemap_leaf') |>
       leaflet::clearGroup(group = 'selected_species_circles') |>
@@ -176,6 +183,19 @@ observe({
         dat_for_plot = dat |> dplyr::mutate(marker_colour = Species)
       }
     }
+    
+    
+    dat_for_plot = dat_for_plot |>
+      dplyr::mutate(
+        DataSource = factor(DataSource, levels = union(source_order, unique(DataSource)))
+      ) |>
+      dplyr::arrange(DataSource)
+    
+    popup_content = leafpop::popupTable(
+      dat_for_plot |>
+        dplyr::select(-rows_to_keep) |>
+        sf::st_drop_geometry()
+    )
     
     # add circles
     l = l |>
